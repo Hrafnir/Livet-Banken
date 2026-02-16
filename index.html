@@ -1,100 +1,140 @@
-<!-- Version: #1 -->
+<!-- Version: #4 -->
 <!DOCTYPE html>
 <html lang="no">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Livet & Banken - Økonomispill</title>
+    <title>Livet & Banken - Ukesoppdraget</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
     <div id="app-container">
         
-        <!-- Hovednavigasjon (Tabber) -->
+        <!-- Hovednavigasjon -->
         <nav class="main-nav">
             <button id="nav-life" class="nav-btn active">Livet</button>
             <button id="nav-bank" class="nav-btn">Nettbanken</button>
         </nav>
 
-        <!-- VISNING 1: LIVET (Spillmodusen) -->
+        <!-- VISNING 1: LIVET (Simulator) -->
         <section id="view-life" class="view active-view">
             <header class="life-header">
-                <div class="stat-box">
-                    <span class="label">Måned:</span>
-                    <span id="display-month" class="value">1</span>
-                </div>
-                <div class="stat-box">
-                    <span class="label">Jobb:</span>
-                    <span id="display-job" class="value">Avisbud</span>
-                </div>
-                <div class="stat-box">
-                    <span class="label">Lykke:</span>
-                    <div class="progress-bar-container">
-                        <div id="happiness-bar" class="progress-bar" style="width: 100%;"></div>
+                <div class="stat-group">
+                    <div class="stat-box">
+                        <span class="label">Tid:</span>
+                        <span class="value">Mnd <span id="disp-month">1</span>, Uke <span id="disp-week">1</span></span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="label">Jobb:</span>
+                        <span id="disp-job" class="value">Avisbud</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="label">Penger:</span>
+                        <span id="disp-cash" class="value">0 kr</span>
                     </div>
                 </div>
-                <div class="stat-box">
-                    <span class="label">Kontanter:</span>
-                    <span id="display-cash" class="value">0 kr</span>
+                
+                <div class="bars-group">
+                    <div class="bar-box">
+                        <span class="label">Helse:</span>
+                        <div class="progress-bar-container">
+                            <div id="bar-health" class="progress-bar health" style="width: 100%;"></div>
+                        </div>
+                    </div>
+                    <div class="bar-box">
+                        <span class="label">Lykke:</span>
+                        <div class="progress-bar-container">
+                            <div id="bar-happiness" class="progress-bar happiness" style="width: 100%;"></div>
+                        </div>
+                    </div>
                 </div>
             </header>
 
             <main class="life-main">
-                <!-- Handlinger -->
-                <div class="action-area">
-                    <h2>Hva vil du gjøre?</h2>
-                    <button id="btn-work" class="action-btn big-btn">🏢 Gå på jobb</button>
-                    <p class="hint">Å jobbe gir inntekt, men koster energi (lykke).</p>
+                
+                <!-- Postkasse (Nye regninger kommer her) -->
+                <div class="mailbox-section">
+                    <h3>📬 Postkasse <span id="mail-count" class="badge hidden">0</span></h3>
+                    <div id="mailbox-list" class="mailbox-list">
+                        <div class="empty-msg">Postkassen er tom.</div>
+                    </div>
+                    <p class="hint">Du må åpne brev for å finne KID og kontonummer.</p>
                 </div>
 
-                <!-- BankID Generator -->
-                <div class="bankid-section">
-                    <h3>Sikkerhet</h3>
-                    <p>Du trenger BankID for å logge inn i nettbanken.</p>
+                <!-- Ukesplanleggeren -->
+                <div class="planner-section">
+                    <h3>📅 Planlegg Uken (168 timer)</h3>
+                    
+                    <div class="planner-input">
+                        <label>Søvn (timer pr natt):</label>
+                        <input type="number" id="input-sleep" value="8" min="0" max="24">
+                        <span class="sub-hint">Minst 7t anbefalt</span>
+                    </div>
+
+                    <div class="planner-input">
+                        <label>Jobb (timer denne uken):</label>
+                        <input type="number" id="input-work" value="0" min="0" max="100">
+                        <span class="sub-hint">Krav: <span id="req-work-hours">10</span>t</span>
+                    </div>
+
+                    <div class="planner-input">
+                        <label>Studier (timer denne uken):</label>
+                        <input type="number" id="input-study" value="0" min="0" max="100">
+                        <span class="sub-hint">Investering i fremtiden</span>
+                    </div>
+
+                    <div class="planner-summary">
+                        <p>Fritid/Sosialt igjen: <strong id="calc-free-time">0</strong> timer</p>
+                        <p>Matbudsjett: 
+                            <select id="select-food-budget">
+                                <option value="low">Lavt (Nudler) - 500kr</option>
+                                <option value="medium" selected>Middels (Vanlig) - 1500kr</option>
+                                <option value="high">Høyt (Luksus) - 3000kr</option>
+                            </select>
+                        </p>
+                    </div>
+
+                    <button id="btn-run-week" class="action-btn big-btn">Start Uken 🚀</button>
+                </div>
+
+                <!-- BankID Generator (Trengs fortsatt) -->
+                <div class="tools-section">
                     <button id="btn-get-bankid" class="secondary-btn">🔑 Hent BankID-brikke</button>
+                    <div class="inventory">
+                        <h4>Ferdigheter & Ting:</h4>
+                        <ul id="inventory-list"></ul>
+                    </div>
                 </div>
 
-                <!-- Inventar / Status -->
-                <div class="inventory-section">
-                    <h3>Dine Ting</h3>
-                    <ul id="inventory-list">
-                        <!-- JS fyller inn ting her -->
-                        <li class="empty-msg">Du eier ingenting ennå.</li>
-                    </ul>
-                </div>
             </main>
-
-            <footer class="life-footer">
-                <button id="btn-next-month" class="system-btn">📅 Gå til neste måned</button>
-            </footer>
         </section>
 
 
-        <!-- VISNING 2: NETTBANKEN (Bedriftsmodusen) -->
+        <!-- VISNING 2: NETTBANKEN (Realistisk) -->
         <section id="view-bank" class="view hidden-view">
             
-            <!-- Bank: Logg inn skjerm -->
+            <!-- Bank: Logg inn -->
             <div id="bank-login-screen" class="bank-screen">
                 <div class="login-box">
                     <div class="bank-logo">NordBanken</div>
                     <h2>Logg inn</h2>
                     <form id="login-form">
                         <div class="form-group">
-                            <label for="input-pid">Fødselsnummer (11 siffer)</label>
-                            <input type="text" id="input-pid" placeholder="123456 78901" value="150509 12345" disabled>
+                            <label>Fødselsnummer</label>
+                            <input type="text" value="150509 12345" disabled>
                         </div>
                         <div class="form-group">
-                            <label for="input-bankid">Engangskode (fra Livet)</label>
-                            <input type="number" id="input-bankid" placeholder="------">
+                            <label>Engangskode</label>
+                            <input type="number" id="input-bankid-login" placeholder="------">
                         </div>
-                        <button type="submit" id="btn-login" class="bank-primary-btn">Logg inn</button>
-                        <p id="login-error" class="error-msg hidden">Feil kode! Prøv igjen.</p>
+                        <button type="submit" class="bank-primary-btn">Logg inn</button>
+                        <p id="login-error" class="error-msg hidden">Feil kode.</p>
                     </form>
                 </div>
             </div>
 
-            <!-- Bank: Dashboard (Vises etter innlogging) -->
+            <!-- Bank: Dashboard -->
             <div id="bank-dashboard-screen" class="bank-screen hidden">
                 <header class="bank-header">
                     <div class="bank-logo-small">NordBanken</div>
@@ -103,61 +143,54 @@
 
                 <div class="bank-grid">
                     <!-- Kontoer -->
-                    <div class="bank-panel accounts-panel">
-                        <h3>Mine Kontoer</h3>
-                        
-                        <div class="account-card" id="acc-checking">
-                            <div class="acc-info">
-                                <span class="acc-name">Brukskonto</span>
-                                <span class="acc-number">1234.56.78901</span>
-                            </div>
-                            <div class="acc-balance">
-                                <span id="balance-checking">0</span> kr
-                            </div>
+                    <div class="bank-panel">
+                        <h3>Oversikt</h3>
+                        <div class="account-row">
+                            <span>Brukskonto</span>
+                            <span id="bal-checking" class="amount">0.00</span>
                         </div>
-
-                        <div class="account-card" id="acc-savings">
-                            <div class="acc-info">
-                                <span class="acc-name">Sparekonto</span>
-                                <span class="acc-number">9876.54.32109</span>
-                            </div>
-                            <div class="acc-balance">
-                                <span id="balance-savings">0</span> kr
-                            </div>
+                        <div class="account-row">
+                            <span>Sparekonto</span>
+                            <span id="bal-savings" class="amount">0.00</span>
                         </div>
-
-                        <div class="account-card" id="acc-bsu">
-                            <div class="acc-info">
-                                <span class="acc-name">BSU</span>
-                                <span class="acc-number">5555.44.33333</span>
-                            </div>
-                            <div class="acc-balance">
-                                <span id="balance-bsu">0</span> kr
-                            </div>
-                        </div>
-
-                        <!-- Overføring (Enkel versjon for HTML struktur) -->
-                        <div class="transfer-box">
-                            <h4>Hurtigoverføring</h4>
-                            <div class="transfer-controls">
-                                <input type="number" id="transfer-amount" placeholder="Beløp">
-                                <button id="btn-transfer-save" class="bank-action-btn">Til Sparekonto</button>
-                            </div>
+                        <div class="account-row">
+                            <span>BSU</span>
+                            <span id="bal-bsu" class="amount">0.00</span>
                         </div>
                     </div>
 
-                    <!-- eFaktura / Regninger -->
-                    <div class="bank-panel bills-panel">
-                        <h3>eFaktura & Forfall</h3>
-                        <p class="info-text">Dra regningen til "Betal" eller klikk på den.</p>
-                        
-                        <div id="bills-list" class="bills-container">
-                            <!-- JS genererer regninger her -->
-                            <div class="empty-bills">Ingen regninger forfaller.</div>
+                    <!-- Betaling (Manuell) -->
+                    <div class="bank-panel">
+                        <h3>Betaling</h3>
+                        <div class="payment-form">
+                            <div class="form-group">
+                                <label>Fra konto</label>
+                                <select id="pay-from">
+                                    <option value="checking">Brukskonto</option>
+                                    <option value="savings">Sparekonto</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Til kontonummer (11 siffer)</label>
+                                <input type="number" id="pay-to-acc" placeholder="0000.00.00000">
+                            </div>
+                            <div class="form-group">
+                                <label>KID / Melding</label>
+                                <input type="number" id="pay-kid" placeholder="KID nummer">
+                            </div>
+                            <div class="form-group">
+                                <label>Beløp</label>
+                                <input type="number" id="pay-amount" placeholder="0.00">
+                            </div>
+                            <button id="btn-pay-manual" class="bank-action-btn">Utfør betaling</button>
                         </div>
+                    </div>
 
-                        <div id="payment-zone" class="payment-dropzone">
-                            <span>Slipp regning her for å betale</span>
+                    <!-- eFaktura Oversikt -->
+                    <div class="bank-panel full-width">
+                        <h3>eFaktura / AvtaleGiro</h3>
+                        <div id="efaktura-list" class="efaktura-container">
+                            <div class="empty-bills">Ingen eFaktura-avtaler ennå.</div>
                         </div>
                     </div>
                 </div>
@@ -166,31 +199,73 @@
 
     </div>
 
-    <!-- Modaler og Overlays -->
+    <!-- MODALER -->
 
     <!-- BankID Code Modal -->
     <div id="modal-bankid" class="modal hidden">
         <div class="modal-content">
             <h3>Din Engangskode</h3>
             <div id="display-bankid-code" class="code-display">------</div>
-            <p>Husk denne koden når du logger inn i banken!</p>
-            <button id="btn-close-modal" class="primary-btn">Lukk</button>
+            <button id="btn-close-bankid" class="primary-btn">Lukk</button>
         </div>
     </div>
 
-    <!-- Notification Toast -->
-    <div id="toast-container"></div>
+    <!-- Paper Bill Modal (Når man åpner post i Livet) -->
+    <div id="modal-paper-bill" class="modal hidden">
+        <div class="modal-content paper-bill">
+            <div class="bill-header">
+                <span id="bill-sender">Utleier AS</span>
+                <span class="bill-date">Forfall: Uke <span id="bill-due-week">1</span></span>
+            </div>
+            <div class="bill-body">
+                <p>Kjære kunde. Her er faktura for denne perioden.</p>
+                <div class="bill-details">
+                    <div class="detail-row">
+                        <span>Beløp å betale:</span>
+                        <strong id="bill-amount-display">3500,00</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>Til kontonr:</span>
+                        <strong id="bill-account-display" class="copyable">1234.56.78901</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>KID:</span>
+                        <strong id="bill-kid-display" class="copyable">00112233</strong>
+                    </div>
+                </div>
+            </div>
+            <div class="bill-footer">
+                <p class="small-text">Husk å betale før forfall for å unngå inkasso.</p>
+                <button id="btn-close-bill" class="primary-btn">Lukk</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- eFaktura Offer Modal -->
+    <div id="modal-efaktura-offer" class="modal hidden">
+        <div class="modal-content">
+            <h3>Opprette eFaktura?</h3>
+            <p>Du har betalt en regning til <span id="offer-recipient">Mottaker</span>.</p>
+            <p>Vil du at fremtidige regninger skal komme rett i nettbanken? Da slipper du å taste KID.</p>
+            <div class="modal-actions">
+                <button id="btn-accept-efaktura" class="primary-btn">Ja, takk!</button>
+                <button id="btn-decline-efaktura" class="secondary-btn">Nei, jeg liker å taste.</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Game Over Modal -->
     <div id="modal-gameover" class="modal hidden">
         <div class="modal-content gameover-content">
             <h2>GAME OVER</h2>
-            <p id="gameover-reason">Du har gått konkurs.</p>
+            <p id="gameover-reason">Konkurs.</p>
             <button id="btn-restart" class="primary-btn">Start på nytt</button>
         </div>
     </div>
 
+    <div id="toast-container"></div>
+
     <script src="script.js"></script>
 </body>
 </html>
-<!-- Version: #1 -->
+<!-- Version: #4 -->
