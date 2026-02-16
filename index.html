@@ -1,0 +1,196 @@
+<!-- Version: #1 -->
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Livet & Banken - Økonomispill</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="app-container">
+        
+        <!-- Hovednavigasjon (Tabber) -->
+        <nav class="main-nav">
+            <button id="nav-life" class="nav-btn active">Livet</button>
+            <button id="nav-bank" class="nav-btn">Nettbanken</button>
+        </nav>
+
+        <!-- VISNING 1: LIVET (Spillmodusen) -->
+        <section id="view-life" class="view active-view">
+            <header class="life-header">
+                <div class="stat-box">
+                    <span class="label">Måned:</span>
+                    <span id="display-month" class="value">1</span>
+                </div>
+                <div class="stat-box">
+                    <span class="label">Jobb:</span>
+                    <span id="display-job" class="value">Avisbud</span>
+                </div>
+                <div class="stat-box">
+                    <span class="label">Lykke:</span>
+                    <div class="progress-bar-container">
+                        <div id="happiness-bar" class="progress-bar" style="width: 100%;"></div>
+                    </div>
+                </div>
+                <div class="stat-box">
+                    <span class="label">Kontanter:</span>
+                    <span id="display-cash" class="value">0 kr</span>
+                </div>
+            </header>
+
+            <main class="life-main">
+                <!-- Handlinger -->
+                <div class="action-area">
+                    <h2>Hva vil du gjøre?</h2>
+                    <button id="btn-work" class="action-btn big-btn">🏢 Gå på jobb</button>
+                    <p class="hint">Å jobbe gir inntekt, men koster energi (lykke).</p>
+                </div>
+
+                <!-- BankID Generator -->
+                <div class="bankid-section">
+                    <h3>Sikkerhet</h3>
+                    <p>Du trenger BankID for å logge inn i nettbanken.</p>
+                    <button id="btn-get-bankid" class="secondary-btn">🔑 Hent BankID-brikke</button>
+                </div>
+
+                <!-- Inventar / Status -->
+                <div class="inventory-section">
+                    <h3>Dine Ting</h3>
+                    <ul id="inventory-list">
+                        <!-- JS fyller inn ting her -->
+                        <li class="empty-msg">Du eier ingenting ennå.</li>
+                    </ul>
+                </div>
+            </main>
+
+            <footer class="life-footer">
+                <button id="btn-next-month" class="system-btn">📅 Gå til neste måned</button>
+            </footer>
+        </section>
+
+
+        <!-- VISNING 2: NETTBANKEN (Bedriftsmodusen) -->
+        <section id="view-bank" class="view hidden-view">
+            
+            <!-- Bank: Logg inn skjerm -->
+            <div id="bank-login-screen" class="bank-screen">
+                <div class="login-box">
+                    <div class="bank-logo">NordBanken</div>
+                    <h2>Logg inn</h2>
+                    <form id="login-form">
+                        <div class="form-group">
+                            <label for="input-pid">Fødselsnummer (11 siffer)</label>
+                            <input type="text" id="input-pid" placeholder="123456 78901" value="150509 12345" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label for="input-bankid">Engangskode (fra Livet)</label>
+                            <input type="number" id="input-bankid" placeholder="------">
+                        </div>
+                        <button type="submit" id="btn-login" class="bank-primary-btn">Logg inn</button>
+                        <p id="login-error" class="error-msg hidden">Feil kode! Prøv igjen.</p>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Bank: Dashboard (Vises etter innlogging) -->
+            <div id="bank-dashboard-screen" class="bank-screen hidden">
+                <header class="bank-header">
+                    <div class="bank-logo-small">NordBanken</div>
+                    <button id="btn-logout" class="bank-logout-btn">Logg ut</button>
+                </header>
+
+                <div class="bank-grid">
+                    <!-- Kontoer -->
+                    <div class="bank-panel accounts-panel">
+                        <h3>Mine Kontoer</h3>
+                        
+                        <div class="account-card" id="acc-checking">
+                            <div class="acc-info">
+                                <span class="acc-name">Brukskonto</span>
+                                <span class="acc-number">1234.56.78901</span>
+                            </div>
+                            <div class="acc-balance">
+                                <span id="balance-checking">0</span> kr
+                            </div>
+                        </div>
+
+                        <div class="account-card" id="acc-savings">
+                            <div class="acc-info">
+                                <span class="acc-name">Sparekonto</span>
+                                <span class="acc-number">9876.54.32109</span>
+                            </div>
+                            <div class="acc-balance">
+                                <span id="balance-savings">0</span> kr
+                            </div>
+                        </div>
+
+                        <div class="account-card" id="acc-bsu">
+                            <div class="acc-info">
+                                <span class="acc-name">BSU</span>
+                                <span class="acc-number">5555.44.33333</span>
+                            </div>
+                            <div class="acc-balance">
+                                <span id="balance-bsu">0</span> kr
+                            </div>
+                        </div>
+
+                        <!-- Overføring (Enkel versjon for HTML struktur) -->
+                        <div class="transfer-box">
+                            <h4>Hurtigoverføring</h4>
+                            <div class="transfer-controls">
+                                <input type="number" id="transfer-amount" placeholder="Beløp">
+                                <button id="btn-transfer-save" class="bank-action-btn">Til Sparekonto</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- eFaktura / Regninger -->
+                    <div class="bank-panel bills-panel">
+                        <h3>eFaktura & Forfall</h3>
+                        <p class="info-text">Dra regningen til "Betal" eller klikk på den.</p>
+                        
+                        <div id="bills-list" class="bills-container">
+                            <!-- JS genererer regninger her -->
+                            <div class="empty-bills">Ingen regninger forfaller.</div>
+                        </div>
+
+                        <div id="payment-zone" class="payment-dropzone">
+                            <span>Slipp regning her for å betale</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- Modaler og Overlays -->
+
+    <!-- BankID Code Modal -->
+    <div id="modal-bankid" class="modal hidden">
+        <div class="modal-content">
+            <h3>Din Engangskode</h3>
+            <div id="display-bankid-code" class="code-display">------</div>
+            <p>Husk denne koden når du logger inn i banken!</p>
+            <button id="btn-close-modal" class="primary-btn">Lukk</button>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast-container"></div>
+
+    <!-- Game Over Modal -->
+    <div id="modal-gameover" class="modal hidden">
+        <div class="modal-content gameover-content">
+            <h2>GAME OVER</h2>
+            <p id="gameover-reason">Du har gått konkurs.</p>
+            <button id="btn-restart" class="primary-btn">Start på nytt</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+<!-- Version: #1 -->
