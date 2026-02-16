@@ -1,447 +1,594 @@
-/* Version: #3 */
+/* Version: #6 */
 
-// === KONFIGURASJON & KONSTANTER ===
+// === KONFIGURASJON ===
 const CONFIG = {
-    SALARY: 1500,       // Lønn for avisbud
-    WORK_PAY: 200,      // Penger tjent per ekstrajobb
-    WORK_COST: 10,      // Lykke tapt per ekstrajobb
-    RENT: 3500,         // Månedlig husleie (trekkes automatisk eller kommer som regning? Vi lager regning)
-    GAME_OVER_LIMIT: -5000 // Hvor mye minus man kan ha før game over (eller 2 mnd regel)
+    HOURS_IN_WEEK: 168,
+    SALARY_BASE: 15000, // Utbetales uke 1
+    HOURLY_RATE: 180,   // Ekstra per time overtid/jobb
+    
+    // Faste mottakere for realisme
+    RECIPIENTS: {
+        RENT: { name: "Utleier AS", account: "1234.56.78901" },
+        POWER: { name: "Fjordkraft", account: "9876.54.32109" },
+        PHONE: { name: "Telenor", account: "5555.44.33333" },
+        INKASSO: { name: "Lindorff", account: "6666.66.66666" }
+    },
+
+    // Matbudsjett (Pris per uke)
+    FOOD_COST: {
+        low: 500,
+        medium: 1500,
+        high: 3000
+    }
 };
 
-// === STATE MANAGEMENT (TILSTAND) ===
-// Vi starter med en standard tilstand, men sjekker localStorage først.
+// === STATE MANAGEMENT ===
 let gameState = {
-    balance: 2000,      // Brukskonto
-    savings: 5000,      // Sparekonto
-    bsu: 0,             // BSU
-    cash: 500,          // Kontanter (Lommepenger)
+    // Tid
     month: 1,
-    happiness: 90,
-    jobTitle: "Avisbud",
-    inventory: [],
-    bills: [],          // Array av regning-objekter
-    negativeMonths: 0,  // Teller for game over logikk
-    currentBankID: null // Midlertidig lagring av generert kode
+    week: 1,
+    
+    // Økonomi
+    balance: 25000, // Starter med litt penger for å overleve første uke
+    savings: 5000,
+    bsu: 0,
+    
+    // Spiller
+    health: 80,
+    happiness: 80,
+    jobTitle: "Butikkmedarbeider",
+    skills: 0, // Øker ved studier
+    
+    // Data
+    bills: [],          // Alle regninger
+    mailbox: [],        // IDer til uåpnede brev
+    efakturaAgreements: [], // Navn på mottakere vi har avtale med
+    
+    // BankID
+    currentBankID: null
 };
 
-// === DOM ELEMENTER ===
-// Navigasjon
-const navLife = document.getElementById('nav-life');
-const navBank = document.getElementById('nav-bank');
+// === DOM CACHE ===
+// Views
 const viewLife = document.getElementById('view-life');
 const viewBank = document.getElementById('view-bank');
+const navLife = document.getElementById('nav-life');
+const navBank = document.getElementById('nav-bank');
 
-// Livet - Display
-const displayMonth = document.getElementById('display-month');
-const displayJob = document.getElementById('display-job');
-const happinessBar = document.getElementById('happiness-bar');
-const displayCash = document.getElementById('display-cash');
+// Life Stats
+const dispMonth = document.getElementById('disp-month');
+const dispWeek = document.getElementById('disp-week');
+const dispJob = document.getElementById('disp-job');
+const dispCash = document.getElementById('disp-cash');
+const barHealth = document.getElementById('bar-health');
+const barHappiness = document.getElementById('bar-happiness');
+
+// Planner
+const inputSleep = document.getElementById('input-sleep');
+const inputWork = document.getElementById('input-work');
+const inputStudy = document.getElementById('input-study');
+const calcFreeTime = document.getElementById('calc-free-time');
+const selectFood = document.getElementById('select-food-budget');
+const btnRunWeek = document.getElementById('btn-run-week');
+
+// Mailbox & Tools
+const mailboxList = document.getElementById('mailbox-list');
+const mailCountBadge = document.getElementById('mail-count');
+const btnGetBankID = document.getElementById('btn-get-bankid');
 const inventoryList = document.getElementById('inventory-list');
 
-// Livet - Knapper
-const btnWork = document.getElementById('btn-work');
-const btnNextMonth = document.getElementById('btn-next-month');
-const btnGetBankID = document.getElementById('btn-get-bankid');
-
-// Bank - Login
+// Bank
 const bankLoginScreen = document.getElementById('bank-login-screen');
-const bankDashboardScreen = document.getElementById('bank-dashboard-screen');
+const bankDashboard = document.getElementById('bank-dashboard-screen');
 const loginForm = document.getElementById('login-form');
-const inputBankID = document.getElementById('input-bankid');
+const inputBankIDLogin = document.getElementById('input-bankid-login');
 const loginError = document.getElementById('login-error');
 const btnLogout = document.getElementById('btn-logout');
 
-// Bank - Dashboard
-const balChecking = document.getElementById('balance-checking');
-const balSavings = document.getElementById('balance-savings');
-const balBsu = document.getElementById('balance-bsu');
-const billsList = document.getElementById('bills-list');
-const paymentZone = document.getElementById('payment-zone');
-const transferAmount = document.getElementById('transfer-amount');
-const btnTransferSave = document.getElementById('btn-transfer-save');
+// Bank Dashboard
+const balChecking = document.getElementById('bal-checking');
+const balSavings = document.getElementById('bal-savings');
+const balBsu = document.getElementById('bal-bsu');
 
-// Modaler
+// Bank Payment Form
+const payFrom = document.getElementById('pay-from');
+const payToAcc = document.getElementById('pay-to-acc');
+const payKid = document.getElementById('pay-kid');
+const payAmount = document.getElementById('pay-amount');
+const btnPayManual = document.getElementById('btn-pay-manual');
+const efakturaList = document.getElementById('efaktura-list');
+
+// Modals
 const modalBankID = document.getElementById('modal-bankid');
 const displayBankIDCode = document.getElementById('display-bankid-code');
-const btnCloseModal = document.getElementById('btn-close-modal');
+const btnCloseBankID = document.getElementById('btn-close-bankid');
+
+const modalPaperBill = document.getElementById('modal-paper-bill');
+const billSender = document.getElementById('bill-sender');
+const billDueWeek = document.getElementById('bill-due-week');
+const billAmountDisplay = document.getElementById('bill-amount-display');
+const billAccountDisplay = document.getElementById('bill-account-display');
+const billKidDisplay = document.getElementById('bill-kid-display');
+const btnCloseBill = document.getElementById('btn-close-bill');
+
+const modalEfaktura = document.getElementById('modal-efaktura-offer');
+const offerRecipient = document.getElementById('offer-recipient');
+const btnAcceptEfaktura = document.getElementById('btn-accept-efaktura');
+const btnDeclineEfaktura = document.getElementById('btn-decline-efaktura');
+
 const modalGameOver = document.getElementById('modal-gameover');
 const gameOverReason = document.getElementById('gameover-reason');
 const btnRestart = document.getElementById('btn-restart');
 
-// Toast Container
-const toastContainer = document.getElementById('toast-container');
 
 // === INITIALISERING ===
 function init() {
-    console.log("System: Starter applikasjon...");
-    
-    // Sjekk om vi har lagret spilldata
-    const savedData = localStorage.getItem('livetBankenSave');
-    if (savedData) {
-        try {
-            gameState = JSON.parse(savedData);
-            console.log("System: Lastet lagret spill.", gameState);
-        } catch (e) {
-            console.error("System: Kunne ikke laste lagret spill, starter på nytt.");
-        }
-    } else {
-        console.log("System: Nytt spill opprettet.");
-    }
-
-    // Nullstill midlertidige verdier (BankID skal ikke huskes mellom sessions på den måten)
-    gameState.currentBankID = null;
-
+    loadGame();
+    setupListeners();
     updateUI();
-    setupEventListeners();
+    updatePlannerCalc(); // Initier kalkulator
 }
 
-// === EVENT LISTENERS ===
-function setupEventListeners() {
+function setupListeners() {
     // Navigasjon
     navLife.addEventListener('click', () => switchView('life'));
     navBank.addEventListener('click', () => switchView('bank'));
 
-    // Livet Handlinger
-    btnWork.addEventListener('click', handleWork);
-    btnNextMonth.addEventListener('click', handleNextMonth);
-    btnGetBankID.addEventListener('click', generateBankID);
-    
-    // Modal
-    btnCloseModal.addEventListener('click', () => modalBankID.classList.add('hidden'));
-    btnRestart.addEventListener('click', resetGame);
+    // Planlegger
+    [inputSleep, inputWork, inputStudy].forEach(input => {
+        input.addEventListener('input', updatePlannerCalc);
+    });
+    btnRunWeek.addEventListener('click', runWeek);
 
-    // Bank Handlinger
+    // BankID
+    btnGetBankID.addEventListener('click', generateBankID);
+    btnCloseBankID.addEventListener('click', () => modalBankID.classList.add('hidden'));
+
+    // Bank Login
     loginForm.addEventListener('submit', handleBankLogin);
     btnLogout.addEventListener('click', handleBankLogout);
-    btnTransferSave.addEventListener('click', handleTransferToSavings);
 
-    // Drag & Drop for regninger
-    paymentZone.addEventListener('dragover', (e) => {
-        e.preventDefault(); // Nødvendig for å tillate drop
-        paymentZone.classList.add('drag-over');
-    });
+    // Bank Betaling
+    btnPayManual.addEventListener('click', handleManualPayment);
 
-    paymentZone.addEventListener('dragleave', () => {
-        paymentZone.classList.remove('drag-over');
-    });
+    // Modaler
+    btnCloseBill.addEventListener('click', () => modalPaperBill.classList.add('hidden'));
+    
+    // eFaktura Tilbud
+    btnAcceptEfaktura.addEventListener('click', () => handleEfakturaResponse(true));
+    btnDeclineEfaktura.addEventListener('click', () => handleEfakturaResponse(false));
 
-    paymentZone.addEventListener('drop', handleBillDrop);
+    // Game Over
+    btnRestart.addEventListener('click', resetGame);
 }
 
-// === CORE GAME LOGIC ===
+// === SPILL-LOGIKK (UKES-HJUL) ===
+
+function updatePlannerCalc() {
+    const sleep = parseInt(inputSleep.value) || 0;
+    const work = parseInt(inputWork.value) || 0;
+    const study = parseInt(inputStudy.value) || 0;
+    
+    // Totalt 168 timer i uka
+    const totalUsed = (sleep * 7) + work + study;
+    const freeTime = CONFIG.HOURS_IN_WEEK - totalUsed;
+
+    calcFreeTime.textContent = freeTime;
+    
+    if (freeTime < 0) {
+        calcFreeTime.style.color = 'red';
+        btnRunWeek.disabled = true;
+        btnRunWeek.textContent = "Du har ikke nok timer! 🕒";
+    } else {
+        calcFreeTime.style.color = 'inherit';
+        btnRunWeek.disabled = false;
+        btnRunWeek.textContent = "Start Uken 🚀";
+    }
+}
+
+function runWeek() {
+    // Hent verdier
+    const sleepPerNight = parseInt(inputSleep.value) || 0;
+    const workHours = parseInt(inputWork.value) || 0;
+    const studyHours = parseInt(inputStudy.value) || 0;
+    const foodType = selectFood.value;
+    const freeTime = parseInt(calcFreeTime.textContent);
+
+    console.log(`Starter Måned ${gameState.month}, Uke ${gameState.week}`);
+
+    // 1. ØKONOMI
+    // Matkostnad
+    let foodCost = CONFIG.FOOD_COST[foodType];
+    gameState.balance -= foodCost;
+    showToast(`Matbudsjett trukket: -${foodCost} kr`, "info");
+
+    // Lønn (Kun uke 1)
+    if (gameState.week === 1) {
+        gameState.balance += CONFIG.SALARY_BASE;
+        showToast(`Månedslønn utbetalt: +${CONFIG.SALARY_BASE} kr`, "success");
+    }
+    // Overtid / Timebetaling (Hver uke hvis man jobber)
+    if (workHours > 0) {
+        const extraPay = workHours * CONFIG.HOURLY_RATE; // Forenklet: Får betalt for timer hver uke
+        gameState.balance += extraPay;
+        // showToast(`Lønn for timer: +${extraPay} kr`, "success");
+    }
+
+    // 2. HELSE & LYKKE BEREGNING
+    let healthChange = 0;
+    let happinessChange = 0;
+
+    // Søvn (Mål: 7 timer * 7 dager = 49 timer)
+    const weeklySleep = sleepPerNight * 7;
+    if (weeklySleep < 49) {
+        healthChange -= 5;
+        happinessChange -= 5;
+        showToast("Du sover for lite! Helse og humør synker.", "error");
+    } else {
+        healthChange += 1; // God søvn gir litt helse
+    }
+
+    // Mat
+    if (foodType === 'low') {
+        healthChange -= 3; // Nudler er ikke bra i lengden
+    } else if (foodType === 'high') {
+        healthChange += 2;
+        happinessChange += 2;
+    }
+
+    // Fritid (Mindre enn 10 timer fri i uka er stressende)
+    if (freeTime < 10) {
+        happinessChange -= 10;
+        showToast("Stresset! Du har nesten ingen fritid.", "error");
+    } else {
+        happinessChange += 2;
+    }
+
+    // Jobb (For mye jobb sliter)
+    if (workHours > 50) {
+        healthChange -= 5;
+        happinessChange -= 5;
+    }
+
+    // Studier (Gir ingen umiddelbar glede, men nødvendig)
+    if (studyHours > 0) {
+        gameState.skills += (studyHours / 10); // Øk kompetanse
+    }
+
+    applyStatChanges(healthChange, happinessChange);
+
+    // 3. GENERER REGNINGER
+    generateWeeklyBills();
+
+    // 4. TIDSHÅNDTERING
+    gameState.week++;
+    if (gameState.week > 4) {
+        gameState.week = 1;
+        gameState.month++;
+        showToast("Ny måned! Husleien forfaller snart.", "info");
+    }
+
+    // 5. GAME OVER SJEKK
+    if (gameState.balance < -10000) {
+        triggerGameOver("Gjelden din ble for stor. Luksusfellen neste.");
+        return;
+    }
+    if (gameState.health <= 0) {
+        triggerGameOver("Du ble utbrent og havnet på sykehus.");
+        return;
+    }
+
+    saveGame();
+    updateUI();
+}
+
+function applyStatChanges(healthDelta, happinessDelta) {
+    gameState.health = Math.max(0, Math.min(100, gameState.health + healthDelta));
+    gameState.happiness = Math.max(0, Math.min(100, gameState.happiness + happinessDelta));
+}
+
+// === FAKTURA & POST ===
+
+function generateWeeklyBills() {
+    const m = gameState.month;
+    const w = gameState.week; // Dette er uken som nettopp var
+
+    // Husleie forfaller Uke 1
+    if (w === 1) {
+        createBill(CONFIG.RECIPIENTS.RENT, 6500, m, 1);
+    }
+
+    // Strøm forfaller Uke 3
+    if (w === 3) {
+        const amount = Math.floor(Math.random() * 800) + 400;
+        createBill(CONFIG.RECIPIENTS.POWER, amount, m, 3);
+    }
+
+    // Mobil forfaller Uke 4
+    if (w === 4) {
+        createBill(CONFIG.RECIPIENTS.PHONE, 499, m, 4);
+    }
+}
+
+function createBill(recipientInfo, amount, dueMonth, dueWeek) {
+    // Sjekk om vi har eFaktura-avtale
+    const hasEfaktura = gameState.efakturaAgreements.includes(recipientInfo.name);
+
+    const bill = {
+        id: Date.now() + Math.random(),
+        recipient: recipientInfo.name,
+        account: recipientInfo.account,
+        kid: generateKID(),
+        amount: amount,
+        dueMonth: dueMonth,
+        dueWeek: dueWeek,
+        isPaid: false,
+        isEfaktura: hasEfaktura
+    };
+
+    gameState.bills.push(bill);
+
+    if (hasEfaktura) {
+        showToast(`Ny eFaktura fra ${recipientInfo.name} i nettbanken.`, "info");
+    } else {
+        // Legg i postkassen
+        gameState.mailbox.push(bill.id);
+        showToast(`Du har fått post fra ${recipientInfo.name}!`, "info");
+    }
+}
+
+function generateKID() {
+    // Generer 8-sifret KID
+    return Math.floor(10000000 + Math.random() * 90000000).toString();
+}
+
+// === BANK LOGIKK ===
+
+function handleManualPayment() {
+    // 1. Hent input
+    const toAccount = payToAcc.value.trim();
+    const kid = payKid.value.trim();
+    const amount = parseFloat(payAmount.value);
+    const fromAccountType = payFrom.value;
+
+    if (!toAccount || !kid || isNaN(amount)) {
+        showToast("Fyll ut alle feltene.", "error");
+        return;
+    }
+
+    // 2. Finn regningen som matcher
+    // Vi tillater at man betaler selv om man ikke har åpnet brevet i postkassen (hvis man gjettet KID?), 
+    // men i praksis må man ha dataene.
+    const bill = gameState.bills.find(b => 
+        !b.isPaid && 
+        b.account === toAccount && 
+        b.kid == kid // Loose equality for string/number mix
+    );
+
+    if (!bill) {
+        showToast("Fant ingen ubetalt regning med denne KID og Kontonummer.", "error");
+        return;
+    }
+
+    if (amount < bill.amount) {
+        showToast("Beløpet er for lavt til å dekke regningen.", "error");
+        return;
+    }
+
+    // 3. Utfør betaling
+    let balanceVar = fromAccountType === 'savings' ? 'savings' : 'balance';
+    
+    if (gameState[balanceVar] < amount) {
+        showToast("Ikke nok dekning på konto.", "error");
+        return;
+    }
+
+    // Trekk penger
+    gameState[balanceVar] -= amount;
+    bill.isPaid = true;
+    
+    // Fjern fra postkasse hvis den lå der
+    gameState.mailbox = gameState.mailbox.filter(id => id !== bill.id);
+
+    // Tøm skjema
+    payToAcc.value = "";
+    payKid.value = "";
+    payAmount.value = "";
+
+    showToast(`Betaling til ${bill.recipient} utført.`, "success");
+    updateUI();
+
+    // 4. Tilby eFaktura?
+    if (!bill.isEfaktura && !gameState.efakturaAgreements.includes(bill.recipient)) {
+        offerEfakturaModal(bill.recipient);
+    }
+}
+
+function handlePayEfaktura(billId) {
+    const bill = gameState.bills.find(b => b.id === billId);
+    if (!bill) return;
+
+    if (gameState.balance >= bill.amount) {
+        gameState.balance -= bill.amount;
+        bill.isPaid = true;
+        showToast(`eFaktura til ${bill.recipient} betalt.`, "success");
+        updateUI();
+    } else {
+        showToast("Ikke nok penger på brukskonto.", "error");
+    }
+}
+
+// === EFAKTURA ===
+
+let pendingEfakturaRecipient = null;
+
+function offerEfakturaModal(recipientName) {
+    pendingEfakturaRecipient = recipientName;
+    offerRecipient.textContent = recipientName;
+    modalEfaktura.classList.remove('hidden');
+}
+
+function handleEfakturaResponse(accepted) {
+    modalEfaktura.classList.add('hidden');
+    if (accepted && pendingEfakturaRecipient) {
+        gameState.efakturaAgreements.push(pendingEfakturaRecipient);
+        showToast(`AvtaleGiro opprettet med ${pendingEfakturaRecipient}.`, "success");
+        // Heretter kommer regninger rett i banken
+    }
+}
+
+// === UI OPPDATERING ===
 
 function updateUI() {
-    // Oppdater Livet Dashboard
-    displayMonth.textContent = gameState.month;
-    displayJob.textContent = gameState.jobTitle;
-    displayCash.textContent = formatMoney(gameState.cash);
-    
-    happinessBar.style.width = `${gameState.happiness}%`;
-    if (gameState.happiness < 30) happinessBar.style.backgroundColor = '#e74c3c'; // Rød
-    else if (gameState.happiness < 60) happinessBar.style.backgroundColor = '#f1c40f'; // Gul
-    else happinessBar.style.backgroundColor = '#4ecdc4'; // Grønn
+    // Header
+    dispMonth.textContent = gameState.month;
+    dispWeek.textContent = gameState.week;
+    dispCash.textContent = formatMoney(gameState.balance); // Viser saldo som "penger tilgjengelig" i livet også
+    dispJob.textContent = gameState.jobTitle;
 
-    // Oppdater Bank Dashboard (hvis logget inn)
+    // Bars
+    barHealth.style.width = `${gameState.health}%`;
+    barHealth.style.backgroundColor = gameState.health < 30 ? '#e74c3c' : '#2ecc71';
+    
+    barHappiness.style.width = `${gameState.happiness}%`;
+    
+    // Mailbox
+    renderMailbox();
+
+    // Bank Dashboard
     balChecking.textContent = formatMoney(gameState.balance, false);
     balSavings.textContent = formatMoney(gameState.savings, false);
     balBsu.textContent = formatMoney(gameState.bsu, false);
-
-    renderBills();
-    saveGame();
+    
+    renderEfakturaList();
 }
 
-function handleWork() {
-    if (gameState.happiness <= 10) {
-        showToast("Du er for utslitt til å jobbe! Ta en pause (neste måned).", "error");
+function renderMailbox() {
+    mailboxList.innerHTML = "";
+    mailCountBadge.textContent = gameState.mailbox.length;
+    
+    if (gameState.mailbox.length === 0) {
+        mailCountBadge.classList.add('hidden');
+        mailboxList.innerHTML = '<div class="empty-msg">Postkassen er tom.</div>';
         return;
     }
 
-    // Logikk
-    gameState.cash += CONFIG.WORK_PAY;
-    gameState.happiness = Math.max(0, gameState.happiness - CONFIG.WORK_COST);
-    
-    console.log(`Handling: Jobbet. Cash: ${gameState.cash}, Lykke: ${gameState.happiness}`);
-    
-    showToast(`Du jobbet ekstra! Tjent: ${CONFIG.WORK_PAY} kr. Lykke: -${CONFIG.WORK_COST}`, "success");
-    
-    // Visuell feedback
-    updateUI();
+    mailCountBadge.classList.remove('hidden');
+
+    gameState.mailbox.forEach(billId => {
+        const bill = gameState.bills.find(b => b.id === billId);
+        if (!bill) return;
+
+        const div = document.createElement('div');
+        div.className = 'mail-item unread';
+        div.textContent = `Regning fra ${bill.recipient}`;
+        div.onclick = () => openPaperBill(bill);
+        mailboxList.appendChild(div);
+    });
 }
 
-function handleNextMonth() {
-    console.log("System: Skifter måned...");
+function openPaperBill(bill) {
+    billSender.textContent = bill.recipient;
+    billDueWeek.textContent = `${bill.dueMonth} (Uke ${bill.dueWeek})`;
+    billAmountDisplay.textContent = bill.amount.toFixed(2);
+    billAccountDisplay.textContent = bill.account;
+    billKidDisplay.textContent = bill.kid;
+    
+    modalPaperBill.classList.remove('hidden');
+}
 
-    // 1. Øk måned
-    gameState.month++;
+function renderEfakturaList() {
+    efakturaList.innerHTML = "";
+    
+    // Finn ubetalte eFakturaer
+    const bills = gameState.bills.filter(b => b.isEfaktura && !b.isPaid);
 
-    // 2. Lønn (kommer på konto)
-    gameState.balance += CONFIG.SALARY;
-    showToast(`Lønn mottatt: ${CONFIG.SALARY} kr på Brukskonto`, "success");
-
-    // 3. Generer Regninger
-    generateMonthlyBills();
-
-    // 4. Tilfeldige hendelser (20% sjanse)
-    handleRandomEvents();
-
-    // 5. Sjekk Game Over kriterier (Saldo)
-    if (gameState.balance < 0) {
-        gameState.negativeMonths++;
-        showToast("Advarsel: Kontoen din er i minus!", "error");
-    } else {
-        gameState.negativeMonths = 0;
-    }
-
-    if (gameState.negativeMonths >= 2) {
-        triggerGameOver("Du har hatt negativ saldo i to måneder på rad. Banken har stengt kontoen din.");
+    if (bills.length === 0) {
+        efakturaList.innerHTML = '<div class="empty-bills">Ingen eFakturaer til forfall.</div>';
         return;
     }
 
-    // 6. Regenerer lykke litt (ny måned, nye muligheter)
-    gameState.happiness = Math.min(100, gameState.happiness + 10);
-
-    console.log(`Status Måned ${gameState.month}: Saldo ${gameState.balance}, Regninger: ${gameState.bills.length}`);
-    updateUI();
+    bills.forEach(bill => {
+        const div = document.createElement('div');
+        div.className = 'bill-item';
+        div.innerHTML = `
+            <span><strong>${bill.recipient}</strong> (Forfall: Mnd ${bill.dueMonth})</span>
+            <div style="display:flex; gap:10px; align-items:center;">
+                <span>${bill.amount} kr</span>
+                <button class="bank-action-btn" onclick="handlePayEfaktura(${bill.id})">Betal</button>
+            </div>
+        `;
+        // Merk: onclick i HTML string krever at funksjonen er global. 
+        // Vi løser dette med addEventListener under opprettelse for å holde scope rent.
+        const btn = div.querySelector('button');
+        btn.onclick = () => handlePayEfaktura(bill.id);
+        
+        efakturaList.appendChild(div);
+    });
 }
 
-function generateMonthlyBills() {
-    // Husleie (Alltid)
-    const rentBill = {
-        id: Date.now() + Math.random(),
-        recipient: "Husleie",
-        amount: 3500,
-        dueDate: gameState.month, // Forfaller denne måneden
-        isPaid: false
-    };
-    gameState.bills.push(rentBill);
-
-    // Strøm (Varierer)
-    const electricity = Math.floor(Math.random() * 500) + 200;
-    const powerBill = {
-        id: Date.now() + Math.random() + 1,
-        recipient: "Fjordkraft",
-        amount: electricity,
-        dueDate: gameState.month,
-        isPaid: false
-    };
-    gameState.bills.push(powerBill);
-
-    // Mobil (Annenhver måned kanskje? Vi tar hver for enkelhet)
-    const phoneBill = {
-        id: Date.now() + Math.random() + 2,
-        recipient: "Telenor",
-        amount: 399,
-        dueDate: gameState.month,
-        isPaid: false
-    };
-    gameState.bills.push(phoneBill);
-}
-
-function handleRandomEvents() {
-    const chance = Math.random();
-    
-    if (chance < 0.15) { // 15% Bad luck
-        const loss = 500;
-        gameState.cash = Math.max(0, gameState.cash - loss);
-        gameState.happiness -= 10;
-        showToast(`Uflaks! Du mistet ${loss} kr på bussen.`, "error");
-        console.log("Event: Bad luck triggered");
-    } else if (chance > 0.85) { // 15% Good luck
-        const gain = 500;
-        gameState.cash += gain;
-        gameState.happiness += 10;
-        showToast(`Flaks! Bestemor vippset deg ${gain} kr.`, "info");
-        console.log("Event: Good luck triggered");
-    }
-}
-
-// === BANKID & SECURITY ===
+// === HJELPEFUNKSJONER ===
 
 function generateBankID() {
-    // Generer 6-sifret kode
     const code = Math.floor(100000 + Math.random() * 900000);
-    gameState.currentBankID = code; // Lagre midlertidig i minnet
-    
-    console.log(`Sikkerhet: BankID generert: ${code}`);
-    
+    gameState.currentBankID = code;
     displayBankIDCode.textContent = code;
     modalBankID.classList.remove('hidden');
 }
 
 function handleBankLogin(e) {
     e.preventDefault();
-    const inputCode = parseInt(inputBankID.value);
-
-    console.log(`Login forsøk: Input=${inputCode}, Faktisk=${gameState.currentBankID}`);
-
-    if (inputCode === gameState.currentBankID) {
-        // Suksess
-        loginError.classList.add('hidden');
+    const input = parseInt(inputBankIDLogin.value);
+    if (input === gameState.currentBankID) {
         bankLoginScreen.classList.add('hidden');
-        bankDashboardScreen.classList.remove('hidden');
-        inputBankID.value = ""; // Clear input
-        showToast("Velkommen inn i nettbanken", "success");
-        updateUI(); // Sørg for at banktallene er oppdatert
+        bankDashboard.classList.remove('hidden');
+        loginError.classList.add('hidden');
+        inputBankIDLogin.value = "";
+        updateUI();
     } else {
-        // Feil
         loginError.classList.remove('hidden');
-        showToast("Feil engangskode!", "error");
     }
 }
 
 function handleBankLogout() {
-    bankDashboardScreen.classList.add('hidden');
+    bankDashboard.classList.add('hidden');
     bankLoginScreen.classList.remove('hidden');
-    gameState.currentBankID = null; // Nullstill koden for sikkerhet
-    showToast("Du er logget ut.", "info");
+    gameState.currentBankID = null;
 }
 
-// === BANK FUNKSJONALITET ===
-
-function handleTransferToSavings() {
-    const amount = parseFloat(transferAmount.value);
-
-    if (isNaN(amount) || amount <= 0) {
-        showToast("Ugyldig beløp.", "error");
-        return;
-    }
-
-    if (gameState.balance >= amount) {
-        gameState.balance -= amount;
-        gameState.savings += amount;
-        transferAmount.value = "";
-        showToast(`Overførte ${amount} kr til Sparekonto.`, "success");
-        updateUI();
-    } else {
-        showToast("Ikke nok dekning på brukskonto.", "error");
-    }
-}
-
-function renderBills() {
-    billsList.innerHTML = "";
-    
-    // Filtrer ut betalte regninger (eller vis dem som arkivert, her fjerner vi dem for enkelhet)
-    const unpaidBills = gameState.bills.filter(bill => !bill.isPaid);
-
-    if (unpaidBills.length === 0) {
-        billsList.innerHTML = '<div class="empty-bills">Ingen regninger forfaller. Godt jobba!</div>';
-        return;
-    }
-
-    unpaidBills.forEach(bill => {
-        const div = document.createElement('div');
-        div.className = 'bill-item';
-        div.draggable = true;
-        div.dataset.id = bill.id; // Lagre ID for drag & drop
-        
-        // Sjekk om forfalt
-        let statusClass = "";
-        let statusText = "";
-        if (bill.dueDate < gameState.month) {
-            statusClass = "overdue";
-            statusText = "(FORFALT!)";
-            // Legg til purregebyr logikk hvis vi vil være strenge, men vi holder det visuelt nå
-        }
-
-        if (statusClass) div.classList.add(statusClass);
-
-        div.innerHTML = `
-            <span><strong>${bill.recipient}</strong> ${statusText}</span>
-            <span>${bill.amount} kr</span>
-        `;
-
-        // Click to pay (alternativ til drag & drop)
-        div.addEventListener('click', () => payBill(bill.id));
-        
-        // Drag events
-        div.addEventListener('dragstart', (e) => {
-            e.dataTransfer.setData('text/plain', bill.id);
-            div.style.opacity = '0.5';
-        });
-
-        div.addEventListener('dragend', () => {
-            div.style.opacity = '1';
-        });
-
-        billsList.appendChild(div);
-    });
-}
-
-function handleBillDrop(e) {
-    e.preventDefault();
-    paymentZone.classList.remove('drag-over');
-    
-    const billId = e.dataTransfer.getData('text/plain');
-    if (billId) {
-        payBill(parseFloat(billId));
-    }
-}
-
-function payBill(billId) {
-    const billIndex = gameState.bills.findIndex(b => b.id === billId);
-    if (billIndex === -1) return;
-
-    const bill = gameState.bills[billIndex];
-
-    if (gameState.balance >= bill.amount) {
-        gameState.balance -= bill.amount;
-        bill.isPaid = true; // Marker som betalt
-        
-        // Fjern fra arrayet eller hold den som "betalt"? 
-        // For spillets del fjerner vi den fra visningen ved neste render, 
-        // men beholder i state hvis vi vil ha historikk.
-        
-        console.log(`Betaling: Betalte ${bill.recipient} på ${bill.amount} kr.`);
-        showToast(`Betalte regning til ${bill.recipient}.`, "success");
-        updateUI();
-    } else {
-        showToast("Ikke nok penger på konto!", "error");
-    }
-}
-
-// === HJELPEFUNKSJONER ===
-
-function switchView(viewName) {
-    if (viewName === 'life') {
+function switchView(view) {
+    if (view === 'life') {
         viewLife.classList.add('active-view');
-        viewLife.classList.remove('hidden-view'); // Sikre
-        viewLife.style.display = 'flex'; // Force flex via JS for animation reset
-        
+        viewLife.classList.remove('hidden-view');
+        viewLife.style.display = 'flex';
         viewBank.classList.remove('active-view');
-        viewBank.classList.add('hidden-view'); // Hide
+        viewBank.classList.add('hidden-view');
         viewBank.style.display = 'none';
-
         navLife.classList.add('active');
         navBank.classList.remove('active');
     } else {
         viewLife.classList.remove('active-view');
         viewLife.classList.add('hidden-view');
         viewLife.style.display = 'none';
-
         viewBank.classList.add('active-view');
         viewBank.classList.remove('hidden-view');
-        viewBank.style.display = 'block'; // Block for bank wrapper
-
+        viewBank.style.display = 'block';
         navLife.classList.remove('active');
         navBank.classList.add('active');
     }
 }
 
-function formatMoney(amount, withCurrency = true) {
-    // Norsk format: 1 500
-    let s = amount.toLocaleString('no-NO');
-    return withCurrency ? `${s} kr` : s;
+function formatMoney(amount, suffix = true) {
+    let s = amount.toLocaleString('no-NO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return suffix ? `${s} kr` : s;
 }
 
-function showToast(message, type = "info") {
+function showToast(msg, type) {
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
-    toast.textContent = message;
-    
-    toastContainer.appendChild(toast);
-
-    // Fjern etter 3 sekunder
+    toast.textContent = msg;
+    const container = document.getElementById('toast-container');
+    container.appendChild(toast);
     setTimeout(() => {
         toast.style.opacity = '0';
         setTimeout(() => toast.remove(), 300);
@@ -449,20 +596,31 @@ function showToast(message, type = "info") {
 }
 
 function saveGame() {
-    localStorage.setItem('livetBankenSave', JSON.stringify(gameState));
+    localStorage.setItem('livetBankenSaveV2', JSON.stringify(gameState));
+}
+
+function loadGame() {
+    const data = localStorage.getItem('livetBankenSaveV2');
+    if (data) {
+        try {
+            const parsed = JSON.parse(data);
+            gameState = { ...gameState, ...parsed }; // Merge default and saved
+        } catch (e) {
+            console.error("Save file corrupted");
+        }
+    }
+}
+
+function resetGame() {
+    localStorage.removeItem('livetBankenSaveV2');
+    location.reload();
 }
 
 function triggerGameOver(reason) {
     modalGameOver.classList.remove('hidden');
     gameOverReason.textContent = reason;
-    console.log("GAME OVER triggered");
 }
 
-function resetGame() {
-    localStorage.removeItem('livetBankenSave');
-    location.reload(); // Enkleste måte å resette alt rent
-}
-
-// Start spillet
+// Start
 init();
-/* Version: #3 */
+/* Version: #6 */
