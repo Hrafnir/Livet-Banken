@@ -1,9 +1,9 @@
-/* Version: #13 */
+/* Version: #16 */
 
 // === KONFIGURASJON ===
 const CONFIG = {
     HOURS_IN_WEEK: 168,
-    XP_PER_LEVEL: 100,
+    XP_PER_LEVEL: 100, // 100 timer studier = 1 nivå
     
     // Økonomi
     LOAN_INTEREST_RATE: 0.045, // 4.5% rente
@@ -17,6 +17,7 @@ const CONFIG = {
         PHONE: { name: "Telenor", account: "5555.44.33333" }
     },
 
+    // Matbudsjett (Pris per uke)
     FOOD_COST: {
         low: 500,
         medium: 1500,
@@ -34,7 +35,7 @@ let gameState = {
     balance: 25000, 
     savings: 10000,
     bsu: 0,
-    loans: [], // Array av { id, amount, type }
+    loans: [], // Array av { id, name, amount, originalAmount, rate }
     
     // Spiller
     health: 90,
@@ -42,9 +43,9 @@ let gameState = {
     
     // Livsstil
     jobId: "job_newspaper",
-    housingId: "rent_basement", // Standard start
-    skills: {},
-    inventory: [],
+    housingId: "rent_basement",
+    skills: {}, // { "it_basic": 150 }
+    inventory: [], // ["item_bike", "sub_netflix"]
     
     // Data
     bills: [],
@@ -53,7 +54,8 @@ let gameState = {
     
     // System
     currentBankID: null,
-    activeStudy: null
+    activeStudy: null,
+    pendingEfaktura: null
 };
 
 // === DOM CACHE ===
@@ -65,6 +67,7 @@ const views = {
     store: document.getElementById('view-store'),
     bank: document.getElementById('view-bank')
 };
+
 const navBtns = {
     life: document.getElementById('nav-life'),
     jobs: document.getElementById('nav-jobs'),
@@ -79,7 +82,7 @@ const disp = {
     month: document.getElementById('disp-month'),
     week: document.getElementById('disp-week'),
     job: document.getElementById('disp-job-title'),
-    home: document.getElementById('disp-home-title'), // NY
+    home: document.getElementById('disp-home-title'),
     cash: document.getElementById('disp-cash'),
     health: document.getElementById('bar-health'),
     happiness: document.getElementById('bar-happiness'),
@@ -98,6 +101,7 @@ const inputs = {
     shopping: document.getElementById('input-shopping'),
     food: document.getElementById('select-food-budget')
 };
+
 const planner = {
     freeTime: document.getElementById('calc-free-time'),
     btnRun: document.getElementById('btn-run-week')
@@ -114,8 +118,8 @@ const bank = {
     balSavings: document.getElementById('bal-savings'),
     balBsu: document.getElementById('bal-bsu'),
     efakturaList: document.getElementById('efaktura-list'),
-    loanContainer: document.getElementById('loan-container'), // NY
-    totalDebt: document.getElementById('total-debt'), // NY
+    loanContainer: document.getElementById('loan-container'),
+    totalDebt: document.getElementById('total-debt'),
     
     // Forms
     payFrom: document.getElementById('pay-from'),
@@ -130,10 +134,10 @@ const bank = {
     btnTrans: document.getElementById('btn-transfer')
 };
 
-// Lists
+// Lists Containers
 const lists = {
     jobs: document.getElementById('job-list'),
-    housing: document.getElementById('housing-list'), // NY
+    housing: document.getElementById('housing-list'),
     edu: document.getElementById('edu-list'),
     store: document.getElementById('store-list'),
     mailbox: document.getElementById('mailbox-list'),
@@ -152,21 +156,33 @@ const modals = {
 // === INITIALISERING ===
 function init() {
     console.log("System: Starter Livet & Banken 4.0...");
+    
     loadGame();
     
-    // Sikre at vi har en bolig (fallback)
+    // Sikre at vi har gyldige data (fallback for eldre saves)
     if (!gameState.housingId) gameState.housingId = "rent_basement";
     if (!gameState.loans) gameState.loans = [];
+    if (!gameState.inventory) gameState.inventory = [];
+    if (!gameState.skills) gameState.skills = {};
 
-    // Generer innhold
+    // Generer innhold fra datafiler
     renderJobs();
     renderHousing();
     renderEducation();
     renderStore();
     
+    // Opprett første husleie hvis nytt spill
+    if (gameState.month === 1 && gameState.week === 1 && gameState.bills.length === 0) {
+        // Finn prisen på nåværende bolig
+        const house = DATA_HOUSING.find(h => h.id === gameState.housingId);
+        if (house && house.type === 'rent') {
+            createBill(CONFIG.RECIPIENTS.RENT, house.price, 1, 1);
+        }
+    }
+
     setupListeners();
     updateUI();
-    updatePlannerCalc();
+    updatePlannerCalc(); // Kjør kalkulatoren en gang
 }
 
 function setupListeners() {
@@ -175,7 +191,7 @@ function setupListeners() {
         navBtns[key].addEventListener('click', () => switchView(key));
     });
 
-    // Planner
+    // Planner inputs
     Object.values(inputs).forEach(inp => {
         inp.addEventListener('input', updatePlannerCalc);
     });
@@ -196,6 +212,8 @@ function setupListeners() {
     document.getElementById('btn-accept-efaktura').addEventListener('click', () => handleEfakturaResponse(true));
     document.getElementById('btn-decline-efaktura').addEventListener('click', () => handleEfakturaResponse(false));
     document.getElementById('btn-close-event').addEventListener('click', () => modals.event.classList.add('hidden'));
+    
+    // Restart logic needs to handle context
     document.getElementById('btn-restart').addEventListener('click', resetGame);
 }
 
@@ -204,11 +222,11 @@ function setupListeners() {
 function calculateCommuteTime() {
     const job = DATA_JOBS.find(j => j.id === gameState.jobId);
     if (!job) return 0;
-    if (parseInt(inputs.work.value) === 0) return 0;
+    if (parseInt(inputs.work.value) === 0) return 0; // Ingen pendling hvis man ikke jobber
 
     let commute = job.commuteBase;
-    
-    // Sjekk inventory for reduksjon
+
+    // Sjekk inventory for effekter (Sykkel, El-sykkel)
     gameState.inventory.forEach(itemId => {
         const item = DATA_ITEMS.find(i => i.id === itemId);
         if (item && item.effect && item.effect.commuteReduction) {
@@ -216,23 +234,21 @@ function calculateCommuteTime() {
         }
     });
 
-    // Sjekk bolig for parkering (hvis man har bil - forenklet: Bolig kan redusere pendling?)
-    // For nå holder vi det enkelt: Jobb bestemmer base, ting reduserer.
-    
     return Math.max(0, commute);
 }
 
 function updatePlannerCalc() {
     const job = DATA_JOBS.find(j => j.id === gameState.jobId);
     
+    // Hent verdier
     const sleep = parseInt(inputs.sleep.value) || 0;
     const work = parseInt(inputs.work.value) || 0;
     const chores = parseInt(inputs.chores.value) || 0;
     const study = parseInt(inputs.study.value) || 0;
     const exercise = parseInt(inputs.exercise.value) || 0;
     const shopping = parseInt(inputs.shopping.value) || 0;
-    const commute = calculateCommuteTime();
 
+    const commute = calculateCommuteTime();
     disp.commute.textContent = commute;
 
     const totalUsed = (sleep * 7) + work + chores + study + exercise + shopping + commute;
@@ -240,6 +256,7 @@ function updatePlannerCalc() {
 
     planner.freeTime.textContent = freeTime;
 
+    // Validering
     let isValid = true;
     let errorMsg = "Start Uken 🚀";
 
@@ -248,10 +265,10 @@ function updatePlannerCalc() {
         errorMsg = "Ikke nok timer!";
     } else if (work > 0 && work < job.minHours) {
         isValid = false;
-        errorMsg = `Min jobb: ${job.minHours}t`;
+        errorMsg = `Må jobbe minst ${job.minHours}t`;
     } else if (work > job.maxHours) {
         isValid = false;
-        errorMsg = `Maks jobb: ${job.maxHours}t`;
+        errorMsg = `Maks jobbtid er ${job.maxHours}t`;
     }
 
     planner.btnRun.disabled = !isValid;
@@ -260,7 +277,7 @@ function updatePlannerCalc() {
 }
 
 function runWeek() {
-    // 1. Inputs
+    // 1. Hent input
     const sleep = parseInt(inputs.sleep.value) || 0;
     const work = parseInt(inputs.work.value) || 0;
     const study = parseInt(inputs.study.value) || 0;
@@ -272,10 +289,13 @@ function runWeek() {
 
     console.log(`Kjører M${gameState.month} U${gameState.week}`);
 
-    // 2. Økonomi (Utgifter)
+    // 2. Økonomi
+    const job = DATA_JOBS.find(j => j.id === gameState.jobId);
+    
+    // Utgifter: Mat
     let expenses = CONFIG.FOOD_COST[foodType];
     
-    // Abonnementer (månedspris / 4)
+    // Utgifter: Abonnementer & Forsikring (månedspris / 4)
     gameState.inventory.forEach(itemId => {
         const item = DATA_ITEMS.find(i => i.id === itemId);
         if (item && (item.type === "subscription" || item.type === "insurance")) {
@@ -283,7 +303,7 @@ function runWeek() {
         }
     });
 
-    // Studieavgift
+    // Utgifter: Studier
     if (gameState.activeStudy && study > 0) {
         const edu = DATA_EDUCATION.find(e => e.id === gameState.activeStudy);
         if (edu) expenses += edu.costPerWeek;
@@ -292,15 +312,19 @@ function runWeek() {
     gameState.balance -= expenses;
 
     // Inntekt
-    const job = DATA_JOBS.find(j => j.id === gameState.jobId);
+    let income = 0;
     if (work > 0) {
-        gameState.balance += (work * job.salary);
+        income = work * job.salary;
+        gameState.balance += income;
     }
 
-    // 3. Ferdigheter
+    // 3. Ferdigheter (Studier)
     if (study > 0 && gameState.activeStudy) {
         const edu = DATA_EDUCATION.find(e => e.id === gameState.activeStudy);
-        let multiplier = hasItem("sub_ai") ? 2 : 1;
+        
+        let multiplier = 1;
+        if (hasItem("sub_ai")) multiplier = 2;
+
         const xpGain = study * edu.difficulty * multiplier;
         
         if (!gameState.skills[edu.category]) gameState.skills[edu.category] = 0;
@@ -310,8 +334,8 @@ function runWeek() {
     // 4. Helse & Lykke
     let dHealth = 0;
     let dHappiness = 0;
-    
-    // Bolig-effekt (Komfort)
+
+    // Bolig (Komfort)
     const house = DATA_HOUSING.find(h => h.id === gameState.housingId);
     if (house) dHappiness += house.comfort;
 
@@ -325,35 +349,37 @@ function runWeek() {
 
     // Trening
     if (exercise > 3) { dHealth += 3; dHappiness += 1; }
-    else if (exercise === 0) dHealth -= 1;
+    else if (exercise === 0) { dHealth -= 1; }
     if (hasItem("sub_gym") && exercise > 0) dHealth += 2;
 
-    // Sosialt
+    // Shopping/Sosialt
     if (shopping > 2) dHappiness += 3;
     if (hasItem("sub_netflix") && freeTime > 5) dHappiness += 2;
 
-    // Husarbeid (Sjanse for uhell hvis man sluntrer unna)
+    // Husarbeid (Risiko)
     if (chores < 3 && Math.random() < 0.1) {
-        createBill({name: "Rørlegger", account: "1111.22.33333"}, 2000, gameState.month, gameState.week);
+        createBill({name: "Rørlegger", account: "1111.22.33333"}, 2500, gameState.month, gameState.week);
         showToast("Vannlekkasje! Du burde vasket oftere...", "error");
     }
 
-    // Jobb
+    // Jobb-effekt
     dHappiness += job.happinessImpact;
 
-    // 5. Hendelser
+    // 5. Hendelser (Uflaks/Flaks)
     handleRandomEvent();
 
     // 6. Oppdater stats
     gameState.health = clamp(gameState.health + dHealth, 0, 100);
     gameState.happiness = clamp(gameState.happiness + dHappiness, 0, 100);
 
-    // 7. Tid & Regninger
+    // 7. Progresjon
     gameState.week++;
     if (gameState.week > 4) {
         gameState.week = 1;
         gameState.month++;
         showToast("Ny måned!", "info");
+        
+        // Månedlige regninger (Husleie, Lån, etc)
         generateMonthlyBills();
     }
 
@@ -362,7 +388,45 @@ function runWeek() {
     updateUI();
 }
 
-// === BOLIG & LÅN ===
+// === GENERERING AV UI (LISTER) ===
+
+function renderJobs() {
+    lists.jobs.innerHTML = "";
+    DATA_JOBS.forEach(job => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        
+        let reqHTML = '<div class="req-list"><strong>Krav:</strong><br>';
+        let canApply = true;
+        
+        if (Object.keys(job.reqSkills).length === 0) {
+            reqHTML += "Ingen krav.";
+        } else {
+            for (const [skill, level] of Object.entries(job.reqSkills)) {
+                const myLevel = getSkillLevel(skill);
+                const color = myLevel >= level ? 'green' : 'red';
+                if (myLevel < level) canApply = false;
+                reqHTML += `<span style="color:${color}">${skill}: Nivå ${level} (Du har ${myLevel})</span><br>`;
+            }
+        }
+        reqHTML += '</div>';
+
+        const isCurrent = gameState.jobId === job.id;
+        const btnText = isCurrent ? "Din Jobb" : (canApply ? "Søk Jobb" : "Mangler kompetanse");
+        const btnClass = isCurrent ? "card-btn active" : "card-btn";
+        const disabled = isCurrent || !canApply ? "disabled" : "";
+
+        card.innerHTML = `
+            <h4>${job.title}</h4>
+            <span class="price-tag">${job.salary} kr/t</span>
+            <p class="desc">${job.description}</p>
+            <p class="desc" style="font-size:0.8rem">Pendling: ${job.commuteBase}t/uke</p>
+            ${reqHTML}
+            <button class="${btnClass}" ${disabled} onclick="applyJob('${job.id}')">${btnText}</button>
+        `;
+        lists.jobs.appendChild(card);
+    });
+}
 
 function renderHousing() {
     lists.housing.innerHTML = "";
@@ -373,7 +437,7 @@ function renderHousing() {
         const isCurrent = gameState.housingId === house.id;
         const isRent = house.type === 'rent';
         
-        // Bilde-håndtering
+        // Bilde
         let imgHTML = `<div class="housing-img">Ingen bilde</div>`;
         if (house.img && house.img !== "") {
             imgHTML = `<img src="${house.img}" class="housing-img" alt="${house.title}">`;
@@ -383,11 +447,9 @@ function renderHousing() {
         let btnText = isCurrent ? "Bor her" : (isRent ? "Leie" : "Kjøp");
         let btnClass = isCurrent ? "card-btn active" : "card-btn";
         
-        // Tags
         let tags = `<span class="tag ${isRent ? 'rent' : 'buy'}">${isRent ? 'Leie' : 'Eie'}</span>`;
         if (house.parking) tags += `<span class="tag parking">P-plass</span>`;
 
-        // Kjøpsinfo
         let extraInfo = "";
         if (!isRent) {
             const equity = house.price * house.reqEquity;
@@ -407,100 +469,32 @@ function renderHousing() {
     });
 }
 
-window.switchHousing = function(id) {
-    const newHouse = DATA_HOUSING.find(h => h.id === id);
-    if (!newHouse) return;
-
-    // 1. Hvis Leie
-    if (newHouse.type === 'rent') {
-        // Hvis vi eier nå, må vi selge først? Vi forenkler:
-        // Hvis du flytter fra eie til leie, selges boligen og lån slettes (anta break-even for enkelhets skyld)
-        clearHousingLoans();
-        gameState.housingId = id;
-        showToast(`Flyttet til ${newHouse.title}`, "success");
-    } 
-    // 2. Hvis Kjøp
-    else if (newHouse.type === 'buy') {
-        const downPayment = newHouse.price * newHouse.reqEquity;
+function renderEducation() {
+    lists.edu.innerHTML = "";
+    DATA_EDUCATION.forEach(edu => {
+        const card = document.createElement('div');
+        card.className = 'card';
         
-        // Sjekk likviditet (Saldo + Sparekonto)
-        const liquidAssets = gameState.balance + gameState.savings;
-        
-        if (liquidAssets < downPayment) {
-            return showToast(`Du mangler ${formatMoney(downPayment - liquidAssets)} i egenkapital!`, "error");
-        }
+        const isActive = gameState.activeStudy === edu.id;
+        const btnText = isActive ? "Valgt" : "Velg Studie";
+        const btnClass = isActive ? "card-btn active" : "card-btn";
 
-        // Gjennomfør kjøp
-        // Trekk fra sparekonto først, så brukskonto
-        let remain = downPayment;
-        if (gameState.savings >= remain) {
-            gameState.savings -= remain;
-            remain = 0;
-        } else {
-            remain -= gameState.savings;
-            gameState.savings = 0;
-            gameState.balance -= remain;
-        }
+        const myXP = gameState.skills[edu.category] || 0;
+        const myLevel = Math.floor(myXP / 100);
 
-        // Ta opp lån på resten
-        const loanAmount = newHouse.price - downPayment;
-        clearHousingLoans(); // Slett gamle boliglån hvis bytte
-        
-        gameState.loans.push({
-            id: Date.now(),
-            name: "Boliglån",
-            amount: loanAmount,
-            originalAmount: loanAmount,
-            rate: CONFIG.LOAN_INTEREST_RATE
-        });
-
-        gameState.housingId = id;
-        showToast(`Gratulerer med ny bolig! Lån: ${formatMoney(loanAmount)}`, "success");
-    }
-
-    updateUI();
-    renderHousing();
-};
-
-function clearHousingLoans() {
-    // Fjerner lån med navn "Boliglån". Forbruksslån beholdes (hvis vi legger til det senere)
-    gameState.loans = gameState.loans.filter(l => l.name !== "Boliglån");
+        card.innerHTML = `
+            <h4>${edu.title}</h4>
+            <span class="price-tag">${edu.costPerWeek} kr/uke</span>
+            <p class="desc">${edu.description}</p>
+            <div class="req-list">
+                Ferdighet: ${edu.category}<br>
+                Ditt Nivå: ${myLevel} (${myXP} XP)
+            </div>
+            <button class="${btnClass}" onclick="selectStudy('${edu.id}')">${btnText}</button>
+        `;
+        lists.edu.appendChild(card);
+    });
 }
-
-function generateMonthlyBills() {
-    const m = gameState.month;
-    const house = DATA_HOUSING.find(h => h.id === gameState.housingId);
-
-    // 1. Husleie (hvis leie)
-    if (house.type === 'rent') {
-        createBill(CONFIG.RECIPIENTS.RENT, house.price, m, 1);
-    } 
-    // 2. Boliglån (hvis eie)
-    else {
-        // Beregn rente og avdrag
-        const loan = gameState.loans.find(l => l.name === "Boliglån");
-        if (loan) {
-            // Enkel annuitet-tilnærming: Rente + (Lån / 300 mnd)
-            const interest = (loan.amount * loan.rate) / 12;
-            const principal = loan.originalAmount / CONFIG.LOAN_TERM_MONTHS;
-            const monthlyPayment = Math.floor(interest + principal);
-
-            createBill(CONFIG.RECIPIENTS.BANK, monthlyPayment, m, 1);
-            
-            // Nedbetaling skjer teknisk sett når regningen betales, 
-            // men for enkelhets skyld i display reduserer vi lånet litt visuelt her,
-            // eller vi kan lage en "Pay Loan" logikk i banken. 
-            // La oss si at lånet reduseres når regningen betales (krever avansert bill-logic).
-            // Forenkling: Vi reduserer lånesaldoen NÅ, men trekker penger via regning.
-            loan.amount -= principal; 
-        }
-    }
-
-    // Andre faste
-    generateRecurringBills(); // Strøm, mobil etc fra før
-}
-
-// === BUTIKK & ABONNEMENTER ===
 
 function renderStore() {
     lists.store.innerHTML = "";
@@ -510,7 +504,6 @@ function renderStore() {
         
         const owned = hasItem(item.id);
         
-        // Bilde-logikk
         let imgHTML = "";
         if (item.img) imgHTML = `<img src="${item.img}" class="housing-img" alt="${item.name}">`;
 
@@ -540,6 +533,92 @@ function renderStore() {
     });
 }
 
+// === HANDLINGSFUNKSJONER (GLOBAL SCOPE) ===
+
+window.applyJob = function(id) {
+    gameState.jobId = id;
+    showToast("Gratulerer med ny jobb!", "success");
+    renderJobs();
+    updateUI();
+    updatePlannerCalc();
+};
+
+window.switchHousing = function(id) {
+    const newHouse = DATA_HOUSING.find(h => h.id === id);
+    if (!newHouse) return;
+
+    // Leie
+    if (newHouse.type === 'rent') {
+        clearHousingLoans();
+        gameState.housingId = id;
+        showToast(`Flyttet til ${newHouse.title}`, "success");
+    } 
+    // Kjøp
+    else if (newHouse.type === 'buy') {
+        const downPayment = newHouse.price * newHouse.reqEquity;
+        const liquidAssets = gameState.balance + gameState.savings;
+        
+        if (liquidAssets < downPayment) {
+            return showToast(`Mangler ${formatMoney(downPayment - liquidAssets)} i egenkapital!`, "error");
+        }
+
+        // Trekk penger (først spar, så bruks)
+        let remain = downPayment;
+        if (gameState.savings >= remain) {
+            gameState.savings -= remain;
+            remain = 0;
+        } else {
+            remain -= gameState.savings;
+            gameState.savings = 0;
+            gameState.balance -= remain;
+        }
+
+        // Opprett lån
+        const loanAmount = newHouse.price - downPayment;
+        clearHousingLoans();
+        
+        gameState.loans.push({
+            id: Date.now(),
+            name: "Boliglån",
+            amount: loanAmount,
+            originalAmount: loanAmount,
+            rate: CONFIG.LOAN_INTEREST_RATE
+        });
+
+        gameState.housingId = id;
+        showToast(`Bolig kjøpt! Lån: ${formatMoney(loanAmount)}`, "success");
+    }
+
+    updateUI();
+    renderHousing();
+};
+
+window.selectStudy = function(id) {
+    gameState.activeStudy = id;
+    showToast("Studie valgt.", "info");
+    renderEducation();
+};
+
+window.buyItem = function(id) {
+    const item = DATA_ITEMS.find(i => i.id === id);
+    if (!item) return;
+
+    if (item.type === "one-time") {
+        if (gameState.balance >= item.price) {
+            gameState.balance -= item.price;
+            gameState.inventory.push(id);
+            showToast(`Kjøpte ${item.name}!`, "success");
+        }
+    } else {
+        gameState.inventory.push(id);
+        showToast(`Abonnerer på ${item.name}.`, "success");
+    }
+    
+    renderStore();
+    updateUI();
+    updatePlannerCalc();
+};
+
 window.cancelItem = function(id) {
     gameState.inventory = gameState.inventory.filter(i => i !== id);
     showToast("Abonnement avsluttet.", "info");
@@ -547,52 +626,92 @@ window.cancelItem = function(id) {
     updateUI();
 };
 
-// === FAIL STATE: KONKURS ===
+window.payEfaktura = function(id) {
+    const bill = gameState.bills.find(b => b.id === id);
+    if (!bill) return;
 
-function checkGameOver() {
-    // Sjekk konkurs (Saldo < -20000)
-    if (gameState.balance < -20000) {
-        triggerBankruptcy();
-    }
-    // Andre tap
-    if (gameState.health <= 0) showGameOver("Helsekollaps! Du presset deg for hardt.");
-    if (gameState.happiness <= 0) showGameOver("Depresjon. Du mistet livsgnisten.");
-}
-
-function triggerBankruptcy() {
-    // 1. Tvangssalg
-    gameState.housingId = "rent_basement";
-    gameState.loans = []; // Slett lån (banken tar huset)
-    gameState.inventory = []; // Namsmannen tar tingene
-    
-    // 2. Nullstill økonomi (med litt startkapital så man ikke dør med en gang)
-    gameState.balance = 2000; 
-    gameState.savings = 0;
-    gameState.bsu = 0;
-
-    // 3. Nullstill lykke
-    gameState.happiness = 10;
-
-    // 4. Varsel
-    document.getElementById('gameover-reason').textContent = "Personlig Konkurs";
-    modals.gameOver.classList.remove('hidden');
-    
-    // Vi bruker Game Over modalen, men endrer knappen til å "Fortsette fra kjelleren"
-    // Egentlig resetter knappen spillet i koden under, men la oss endre logikken litt:
-    const btn = document.getElementById('btn-restart');
-    btn.textContent = "Flytt hjem til mor og far";
-    btn.onclick = () => {
-        modals.gameOver.classList.add('hidden');
-        showToast("Du har flyttet hjem. Lykke til videre.", "info");
+    if (gameState.balance >= bill.amount) {
+        gameState.balance -= bill.amount;
+        bill.isPaid = true;
+        showToast(`eFaktura betalt.`, "success");
         updateUI();
-        renderHousing();
-        // Reset button behavior back to normal restart for next time
-        btn.onclick = resetGame; 
-        btn.textContent = "Start på nytt";
-    };
+    } else {
+        showToast("Ikke nok penger på brukskonto.", "error");
+    }
+};
+
+window.openBillModal = function(bill) {
+    document.getElementById('bill-sender').textContent = bill.recipient;
+    document.getElementById('bill-amount-display').textContent = bill.amount.toFixed(2);
+    document.getElementById('bill-account-display').textContent = bill.account;
+    document.getElementById('bill-kid-display').textContent = bill.kid;
+    modals.paperBill.classList.remove('hidden');
+};
+
+// === BANK & BILLS UTILITY ===
+
+function clearHousingLoans() {
+    gameState.loans = gameState.loans.filter(l => l.name !== "Boliglån");
 }
 
-// === HJELPEFUNKSJONER & GENERISK LOGIKK ===
+function generateMonthlyBills() {
+    const m = gameState.month;
+    const house = DATA_HOUSING.find(h => h.id === gameState.housingId);
+
+    // 1. Husleie (hvis leie)
+    if (house.type === 'rent') {
+        createBill(CONFIG.RECIPIENTS.RENT, house.price, m, 1);
+    } 
+    // 2. Boliglån (hvis eie)
+    else {
+        const loan = gameState.loans.find(l => l.name === "Boliglån");
+        if (loan) {
+            const interest = (loan.amount * loan.rate) / 12;
+            const principal = loan.originalAmount / CONFIG.LOAN_TERM_MONTHS;
+            const monthlyPayment = Math.floor(interest + principal);
+
+            createBill(CONFIG.RECIPIENTS.BANK, monthlyPayment, m, 1);
+            
+            // Reduser lånesaldo "visuelt" nå, selv om regningen ikke er betalt ennå.
+            // Dette er en forenkling. I et ekte system skjer dette ved betaling.
+            loan.amount = Math.max(0, loan.amount - principal); 
+        }
+    }
+
+    generateRecurringBills();
+}
+
+function generateRecurringBills() {
+    const m = gameState.month;
+    const w = gameState.week;
+    if (w === 3) createBill(CONFIG.RECIPIENTS.POWER, Math.floor(Math.random()*800)+400, m, 3);
+    if (w === 4) createBill(CONFIG.RECIPIENTS.PHONE, 449, m, 4);
+}
+
+function createBill(recipient, amount, m, w) {
+    const isEfaktura = gameState.efakturaAgreements.includes(recipient.name);
+    const bill = {
+        id: Date.now() + Math.random(),
+        recipient: recipient.name,
+        account: recipient.account,
+        kid: Math.floor(Math.random() * 100000000).toString(),
+        amount: Math.floor(amount),
+        dueMonth: m,
+        dueWeek: w,
+        isPaid: false,
+        isEfaktura: isEfaktura
+    };
+    gameState.bills.push(bill);
+
+    if (!isEfaktura) {
+        gameState.mailbox.push(bill.id);
+        showToast(`Regning fra ${recipient.name}`, "info");
+    } else {
+        showToast(`eFaktura fra ${recipient.name}`, "info");
+    }
+}
+
+// === HENDELSER & FAIL STATE ===
 
 function handleRandomEvent() {
     if (Math.random() > 0.15) return;
@@ -620,34 +739,131 @@ function handleRandomEvent() {
     gameState.happiness = clamp(gameState.happiness + event.happinessImpact, 0, 100);
 }
 
-function generateRecurringBills() {
-    // Strøm & Mobil (som før)
-    const m = gameState.month;
-    const w = gameState.week;
-    if (w === 3) createBill(CONFIG.RECIPIENTS.POWER, Math.floor(Math.random()*800)+400, m, 3);
-    if (w === 4) createBill(CONFIG.RECIPIENTS.PHONE, 449, m, 4);
+function checkGameOver() {
+    if (gameState.balance < -20000) triggerBankruptcy();
+    if (gameState.health <= 0) showGameOver("Helsekollaps!");
+    if (gameState.happiness <= 0) showGameOver("Depresjon.");
 }
 
-function createBill(recipient, amount, m, w) {
-    const isEfaktura = gameState.efakturaAgreements.includes(recipient.name);
-    const bill = {
-        id: Date.now() + Math.random(),
-        recipient: recipient.name,
-        account: recipient.account,
-        kid: Math.floor(Math.random() * 100000000).toString(),
-        amount: Math.floor(amount),
-        dueMonth: m,
-        dueWeek: w,
-        isPaid: false,
-        isEfaktura: isEfaktura
+function triggerBankruptcy() {
+    gameState.housingId = "rent_basement";
+    gameState.loans = [];
+    gameState.inventory = [];
+    gameState.balance = 2000; 
+    gameState.savings = 0;
+    gameState.bsu = 0;
+    gameState.happiness = 10;
+
+    document.getElementById('gameover-reason').textContent = "Personlig Konkurs";
+    modals.gameOver.classList.remove('hidden');
+    
+    const btn = document.getElementById('btn-restart');
+    btn.textContent = "Flytt hjem til mor og far";
+    btn.onclick = () => {
+        modals.gameOver.classList.add('hidden');
+        showToast("Du har flyttet hjem.", "info");
+        updateUI();
+        renderHousing();
+        // Reset button
+        btn.onclick = resetGame; 
+        btn.textContent = "Start på nytt";
     };
-    gameState.bills.push(bill);
-    if (!isEfaktura) gameState.mailbox.push(bill.id);
 }
 
-// UI UPDATE (Inkludert Lån)
+// === SYSTEM ===
+
+function switchView(viewName) {
+    Object.values(views).forEach(el => {
+        el.classList.remove('active-view');
+        el.classList.add('hidden-view');
+        el.style.display = 'none';
+    });
+    Object.values(navBtns).forEach(el => el.classList.remove('active'));
+
+    views[viewName].classList.add('active-view');
+    views[viewName].classList.remove('hidden-view');
+    views[viewName].style.display = 'flex';
+    navBtns[viewName].classList.add('active');
+}
+
+function generateBankID() {
+    gameState.currentBankID = Math.floor(100000 + Math.random() * 900000);
+    document.getElementById('display-bankid-code').textContent = gameState.currentBankID;
+    modals.bankId.classList.remove('hidden');
+}
+
+function handleBankLogin(e) {
+    e.preventDefault();
+    if (parseInt(bank.inputId.value) === gameState.currentBankID) {
+        bank.loginScreen.classList.add('hidden');
+        bank.dashboard.classList.remove('hidden');
+        bank.error.classList.add('hidden');
+        bank.inputId.value = "";
+        updateUI();
+    } else {
+        bank.error.classList.remove('hidden');
+    }
+}
+
+function handleBankLogout() {
+    bank.dashboard.classList.add('hidden');
+    bank.loginScreen.classList.remove('hidden');
+    gameState.currentBankID = null;
+}
+
+function handleTransfer() {
+    const from = bank.transFrom.value;
+    const to = bank.transTo.value;
+    const amt = parseFloat(bank.transAmt.value);
+    const map = { "checking": "balance", "savings": "savings", "bsu": "bsu" };
+    
+    if (from !== to && gameState[map[from]] >= amt && amt > 0) {
+        gameState[map[from]] -= amt;
+        gameState[map[to]] += amt;
+        showToast("Overført", "success");
+        bank.transAmt.value = "";
+        updateUI();
+    } else {
+        showToast("Feil ved overføring", "error");
+    }
+}
+
+function handleManualPayment() {
+    const acc = bank.payTo.value.replace(/[^0-9]/g, '');
+    const kid = bank.payKid.value.replace(/[^0-9]/g, '');
+    const amt = parseFloat(bank.payAmt.value);
+    const bill = gameState.bills.find(b => !b.isPaid && b.account.replace(/[^0-9]/g, '') === acc && b.kid === kid);
+    
+    if (bill && Math.abs(bill.amount - amt) < 2) {
+        const fromKey = bank.payFrom.value === "savings" ? "savings" : "balance";
+        if (gameState[fromKey] >= amt) {
+            gameState[fromKey] -= amt;
+            bill.isPaid = true;
+            gameState.mailbox = gameState.mailbox.filter(id => id !== bill.id);
+            showToast("Betalt!", "success");
+            
+            if (!bill.isEfaktura && !gameState.efakturaAgreements.includes(bill.recipient)) {
+                document.getElementById('offer-recipient').textContent = bill.recipient;
+                gameState.pendingEfaktura = bill.recipient;
+                modals.efaktura.classList.remove('hidden');
+            }
+            bank.payTo.value = ""; bank.payKid.value = ""; bank.payAmt.value = "";
+            updateUI();
+        } else showToast("Ikke nok penger", "error");
+    } else showToast("Ugyldig betaling", "error");
+}
+
+function handleEfakturaResponse(accept) {
+    modals.efaktura.classList.add('hidden');
+    if (accept && gameState.pendingEfaktura) {
+        gameState.efakturaAgreements.push(gameState.pendingEfaktura);
+        showToast("AvtaleGiro opprettet", "success");
+    }
+    gameState.pendingEfaktura = null;
+}
+
 function updateUI() {
-    // Stats
+    // Top Bar
     disp.month.textContent = gameState.month;
     disp.week.textContent = gameState.week;
     disp.cash.textContent = formatMoney(gameState.balance);
@@ -656,8 +872,9 @@ function updateUI() {
     disp.job.textContent = job ? job.title : "Ukjent";
     
     const house = DATA_HOUSING.find(h => h.id === gameState.housingId);
-    disp.home.textContent = house ? house.title : "Uteligger";
+    disp.home.textContent = house ? house.title : "Ukjent";
 
+    // Bars
     disp.health.style.width = gameState.health + "%";
     disp.health.style.backgroundColor = gameState.health < 30 ? 'red' : '#2ecc71';
     disp.happiness.style.width = gameState.happiness + "%";
@@ -680,7 +897,7 @@ function updateUI() {
     bank.balSavings.textContent = formatMoney(gameState.savings);
     bank.balBsu.textContent = formatMoney(gameState.bsu);
 
-    // Lån i banken
+    // Lån
     bank.loanContainer.innerHTML = "";
     let totalDebt = 0;
     if (gameState.loans.length === 0) {
@@ -696,7 +913,7 @@ function updateUI() {
     }
     bank.totalDebt.textContent = formatMoney(totalDebt);
 
-    // Mailbox & eFaktura (Samme som før)
+    // Mailbox & eFaktura
     renderMailbox();
     renderEfakturaList();
 }
@@ -734,112 +951,7 @@ function renderEfakturaList() {
     });
 }
 
-// Global functions for HTML access
-window.applyJob = function(id) { gameState.jobId = id; showToast("Ny jobb!"); renderJobs(); updateUI(); updatePlannerCalc(); };
-window.selectStudy = function(id) { gameState.activeStudy = id; showToast("Studie valgt"); renderEducation(); };
-window.buyItem = function(id) { 
-    const item = DATA_ITEMS.find(i => i.id === id);
-    if(gameState.balance >= item.price || item.type !== 'one-time') {
-        if(item.type === 'one-time') gameState.balance -= item.price;
-        gameState.inventory.push(id);
-        showToast("Kjøpt: " + item.name, "success");
-        renderStore(); updateUI(); updatePlannerCalc();
-    }
-};
-window.payEfaktura = function(id) {
-    const bill = gameState.bills.find(b => b.id === id);
-    if(gameState.balance >= bill.amount) {
-        gameState.balance -= bill.amount;
-        bill.isPaid = true;
-        showToast("Betalt", "success");
-        updateUI();
-    } else showToast("Mangler dekning", "error");
-};
-window.openBillModal = function(bill) {
-    document.getElementById('bill-sender').textContent = bill.recipient;
-    document.getElementById('bill-amount-display').textContent = bill.amount.toFixed(2);
-    document.getElementById('bill-account-display').textContent = bill.account;
-    document.getElementById('bill-kid-display').textContent = bill.kid;
-    modals.paperBill.classList.remove('hidden');
-};
-
-// ... (Resten av hjelpefunksjoner: switchView, handleBankLogin, etc. er uendret fra versjon #10 men inkludert i logikken over) ...
-
-function switchView(viewName) {
-    Object.values(views).forEach(el => { el.classList.remove('active-view'); el.classList.add('hidden-view'); el.style.display = 'none'; });
-    Object.values(navBtns).forEach(el => el.classList.remove('active'));
-    views[viewName].classList.add('active-view');
-    views[viewName].classList.remove('hidden-view');
-    views[viewName].style.display = 'flex';
-    navBtns[viewName].classList.add('active');
-}
-
-function generateBankID() {
-    gameState.currentBankID = Math.floor(100000 + Math.random() * 900000);
-    document.getElementById('display-bankid-code').textContent = gameState.currentBankID;
-    modals.bankId.classList.remove('hidden');
-}
-
-function handleBankLogin(e) {
-    e.preventDefault();
-    if (parseInt(bank.inputId.value) === gameState.currentBankID) {
-        bank.loginScreen.classList.add('hidden');
-        bank.dashboard.classList.remove('hidden');
-        bank.error.classList.add('hidden');
-        updateUI();
-    } else bank.error.classList.remove('hidden');
-}
-
-function handleBankLogout() {
-    bank.dashboard.classList.add('hidden');
-    bank.loginScreen.classList.remove('hidden');
-    gameState.currentBankID = null;
-}
-
-function handleTransfer() {
-    const from = bank.transFrom.value;
-    const to = bank.transTo.value;
-    const amt = parseFloat(bank.transAmt.value);
-    const map = { "checking": "balance", "savings": "savings", "bsu": "bsu" };
-    
-    if (from !== to && gameState[map[from]] >= amt && amt > 0) {
-        gameState[map[from]] -= amt;
-        gameState[map[to]] += amt;
-        showToast("Overført", "success");
-        bank.transAmt.value = "";
-        updateUI();
-    } else showToast("Feil ved overføring", "error");
-}
-
-function handleManualPayment() {
-    const acc = bank.payTo.value.replace(/[^0-9]/g, '');
-    const kid = bank.payKid.value.replace(/[^0-9]/g, '');
-    const amt = parseFloat(bank.payAmt.value);
-    const bill = gameState.bills.find(b => !b.isPaid && b.account.replace(/[^0-9]/g, '') === acc && b.kid === kid);
-    
-    if (bill && Math.abs(bill.amount - amt) < 2) {
-        const fromKey = bank.payFrom.value === "savings" ? "savings" : "balance";
-        if (gameState[fromKey] >= amt) {
-            gameState[fromKey] -= amt;
-            bill.isPaid = true;
-            gameState.mailbox = gameState.mailbox.filter(id => id !== bill.id);
-            showToast("Betalt!", "success");
-            if (!bill.isEfaktura && !gameState.efakturaAgreements.includes(bill.recipient)) {
-                document.getElementById('offer-recipient').textContent = bill.recipient;
-                gameState.pendingEfaktura = bill.recipient;
-                modals.efaktura.classList.remove('hidden');
-            }
-            bank.payTo.value = ""; bank.payKid.value = ""; bank.payAmt.value = "";
-            updateUI();
-        } else showToast("Ikke nok penger", "error");
-    } else showToast("Ugyldig betaling", "error");
-}
-
-function handleEfakturaResponse(accept) {
-    modals.efaktura.classList.add('hidden');
-    if (accept && gameState.pendingEfaktura) gameState.efakturaAgreements.push(gameState.pendingEfaktura);
-}
-
+// Helper Functions
 function hasItem(id) { return gameState.inventory.includes(id); }
 function getSkillLevel(cat) { return Math.floor((gameState.skills[cat] || 0) / 100); }
 function formatMoney(amount) { return Math.floor(amount).toLocaleString('no-NO') + " kr"; }
@@ -853,13 +965,13 @@ function showGameOver(reason) {
     document.getElementById('gameover-reason').textContent = reason;
     modals.gameOver.classList.remove('hidden');
 }
-function saveGame() { localStorage.setItem('livetBankenV13', JSON.stringify(gameState)); }
+function saveGame() { localStorage.setItem('livetBankenV16', JSON.stringify(gameState)); }
 function loadGame() {
-    const data = localStorage.getItem('livetBankenV13');
+    const data = localStorage.getItem('livetBankenV16');
     if (data) gameState = { ...gameState, ...JSON.parse(data) };
 }
-function resetGame() { localStorage.removeItem('livetBankenV13'); location.reload(); }
+function resetGame() { localStorage.removeItem('livetBankenV16'); location.reload(); }
 
 // Start
 init();
-/* Version: #13 */
+/* Version: #16 */
