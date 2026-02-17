@@ -1,17 +1,16 @@
-<!-- Version: #14 -->
+<!-- Version: #17 -->
 <!DOCTYPE html>
 <html lang="no">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Livet & Banken 4.0</title>
+    <title>Livet & Banken 4.1</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
     <div id="app-container">
         
-        <!-- Hovednavigasjon -->
         <nav class="main-nav">
             <button id="nav-life" class="nav-btn active">Livet</button>
             <button id="nav-jobs" class="nav-btn">Jobb</button>
@@ -21,7 +20,7 @@
             <button id="nav-bank" class="nav-btn">Banken</button>
         </nav>
 
-        <!-- VISNING 1: LIVET (Oversikt) -->
+        <!-- VISNING 1: LIVET -->
         <section id="view-life" class="view active-view">
             <header class="life-header">
                 <div class="stat-group">
@@ -53,6 +52,15 @@
 
             <main class="life-main">
                 
+                <!-- SPESIALBOKS FOR KJELLERBOERE -->
+                <div id="parents-section" class="info-section hidden" style="background: #fff3cd; border: 1px solid #ffeeba;">
+                    <div class="status-area" style="width:100%; box-shadow:none;">
+                        <h3>🏠 Hjemme hos Mor & Far</h3>
+                        <p>Du bor billig, men må bidra til husholdningen.</p>
+                        <button id="btn-pay-parents" class="action-btn" style="background:#e67e22; margin-top:10px;">Vipps 2000 kr for mat/strøm</button>
+                    </div>
+                </div>
+
                 <div class="info-section">
                     <div class="status-area">
                         <h3>Min Status</h3>
@@ -108,39 +116,19 @@
             </main>
         </section>
 
-        <!-- VISNING 2: JOBBMARKED -->
-        <section id="view-jobs" class="view hidden-view">
-            <h2>Jobbmarked</h2>
-            <div id="job-list" class="card-grid"></div>
-        </section>
-
-        <!-- VISNING 3: BOLIGMARKED -->
-        <section id="view-housing" class="view hidden-view">
-            <h2>Boligmarked</h2>
-            <p class="intro-text">Leie eller eie? Husk at lån koster penger.</p>
-            <div id="housing-list" class="card-grid"></div>
-        </section>
-
-        <!-- VISNING 4: UTDANNING -->
-        <section id="view-edu" class="view hidden-view">
-            <h2>Campus & Kurs</h2>
-            <div id="edu-list" class="card-grid"></div>
-        </section>
-
-        <!-- VISNING 5: BUTIKK -->
-        <section id="view-store" class="view hidden-view">
-            <h2>Butikk & Abonnementer</h2>
-            <div id="store-list" class="card-grid"></div>
-        </section>
+        <!-- ANDRE VISNINGER (Uendret struktur, men inkludert for komplett fil) -->
+        <section id="view-jobs" class="view hidden-view"><h2>Jobbmarked</h2><div id="job-list" class="card-grid"></div></section>
+        <section id="view-housing" class="view hidden-view"><h2>Boligmarked</h2><p class="intro-text">Husk: Ny bolig = Nytt kontonummer for leie!</p><div id="housing-list" class="card-grid"></div></section>
+        <section id="view-edu" class="view hidden-view"><h2>Campus & Kurs</h2><div id="edu-list" class="card-grid"></div></section>
+        <section id="view-store" class="view hidden-view"><h2>Butikk & Abonnementer</h2><div id="store-list" class="card-grid"></div></section>
 
         <!-- VISNING 6: NETTBANKEN -->
         <section id="view-bank" class="view hidden-view">
-            
-            <!-- Bank Login -->
             <div id="bank-login-screen" class="bank-screen">
                 <div class="login-box">
                     <div class="bank-logo">NordBanken</div>
                     <h2>Logg inn</h2>
+                    <p style="font-size:0.8rem; color:#666; margin-bottom:10px;">(Du må logge inn på nytt hver uke av sikkerhetshensyn)</p>
                     <form id="login-form">
                         <div class="form-group"><label>Fødselsnummer</label><input type="text" value="150509 12345" disabled></div>
                         <div class="form-group"><label>Engangskode</label><input type="number" id="input-bankid-login" placeholder="------"></div>
@@ -150,7 +138,6 @@
                 </div>
             </div>
 
-            <!-- Bank Dashboard -->
             <div id="bank-dashboard-screen" class="bank-screen hidden">
                 <header class="bank-header">
                     <div class="bank-logo-small">NordBanken</div>
@@ -158,48 +145,26 @@
                 </header>
 
                 <div class="bank-grid">
-                    <!-- Kontoer -->
                     <div class="bank-panel">
                         <h3>Kontoer</h3>
                         <div class="account-row"><span>Brukskonto</span><span id="bal-checking" class="amount">0</span></div>
                         <div class="account-row"><span>Sparekonto</span><span id="bal-savings" class="amount">0</span></div>
                         <div class="account-row"><span>BSU</span><span id="bal-bsu" class="amount">0</span></div>
                     </div>
-
-                    <!-- Lån -->
                     <div class="bank-panel">
                         <h3>Mine Lån</h3>
-                        <div id="loan-container">
-                            <div class="empty-bills">Ingen lån.</div>
-                        </div>
-                        <div class="loan-summary">
-                            <small>Totalt lån: <span id="total-debt">0</span> kr</small>
-                        </div>
+                        <div id="loan-container"><div class="empty-bills">Ingen lån.</div></div>
+                        <div class="loan-summary"><small>Totalt lån: <span id="total-debt">0</span> kr</small></div>
                     </div>
-
-                    <!-- Overføring -->
                     <div class="bank-panel">
                         <h3>Overføring</h3>
                         <div class="payment-form">
-                            <div class="form-group">
-                                <select id="trans-from">
-                                    <option value="checking">Brukskonto</option>
-                                    <option value="savings">Sparekonto</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <select id="trans-to">
-                                    <option value="savings">Sparekonto</option>
-                                    <option value="bsu">BSU</option>
-                                    <option value="checking">Brukskonto</option>
-                                </select>
-                            </div>
+                            <div class="form-group"><select id="trans-from"><option value="checking">Brukskonto</option><option value="savings">Sparekonto</option></select></div>
+                            <div class="form-group"><select id="trans-to"><option value="savings">Sparekonto</option><option value="bsu">BSU</option><option value="checking">Brukskonto</option></select></div>
                             <div class="form-group"><input type="number" id="trans-amount" placeholder="Beløp"></div>
                             <button id="btn-transfer" class="bank-action-btn">Overfør</button>
                         </div>
                     </div>
-
-                    <!-- Betaling -->
                     <div class="bank-panel">
                         <h3>Betaling</h3>
                         <div class="payment-form">
@@ -209,8 +174,6 @@
                             <button id="btn-pay-manual" class="bank-action-btn">Betal</button>
                         </div>
                     </div>
-
-                    <!-- eFaktura -->
                     <div class="bank-panel full-width">
                         <h3>eFaktura</h3>
                         <div id="efaktura-list" class="efaktura-container"></div>
@@ -222,50 +185,25 @@
     </div>
 
     <!-- MODALER -->
-    <div id="modal-bankid" class="modal hidden">
-        <div class="modal-content"><h3>Engangskode</h3><div id="display-bankid-code" class="code-display"></div><button id="btn-close-bankid" class="primary-btn">Lukk</button></div>
-    </div>
-    
+    <div id="modal-bankid" class="modal hidden"><div class="modal-content"><h3>Engangskode</h3><div id="display-bankid-code" class="code-display"></div><button id="btn-close-bankid" class="primary-btn">Lukk</button></div></div>
     <div id="modal-paper-bill" class="modal hidden">
         <div class="modal-content paper-bill">
             <div class="bill-header"><span id="bill-sender"></span><span id="bill-due-week"></span></div>
-            <div class="bill-body"><p>Faktura</p><div class="bill-details">
-                <div class="detail-row"><span>Beløp:</span><strong id="bill-amount-display"></strong></div>
-                <div class="detail-row"><span>Konto:</span><strong id="bill-account-display" class="copyable"></strong></div>
-                <div class="detail-row"><span>KID:</span><strong id="bill-kid-display" class="copyable"></strong></div>
-            </div></div>
+            <div class="bill-body"><p>Faktura</p><div class="bill-details"><div class="detail-row"><span>Beløp:</span><strong id="bill-amount-display"></strong></div><div class="detail-row"><span>Konto:</span><strong id="bill-account-display" class="copyable"></strong></div><div class="detail-row"><span>KID:</span><strong id="bill-kid-display" class="copyable"></strong></div></div></div>
             <div class="bill-footer"><button id="btn-close-bill" class="primary-btn">Lukk</button></div>
         </div>
     </div>
-
-    <div id="modal-efaktura-offer" class="modal hidden">
-        <div class="modal-content"><h3>eFaktura?</h3><p id="offer-text">Vil du opprette AvtaleGiro?</p><div class="modal-actions"><button id="btn-accept-efaktura" class="primary-btn">Ja</button><button id="btn-decline-efaktura" class="secondary-btn">Nei</button></div></div>
-    </div>
-
-    <div id="modal-event" class="modal hidden">
-        <div class="modal-content"><h3>Hendelse!</h3><p id="event-text"></p><p id="event-cost" style="font-weight:bold; margin:10px 0;"></p><p id="event-insurance" style="color:green; font-style:italic;"></p><button id="btn-close-event" class="primary-btn">OK</button></div>
-    </div>
-
-    <div id="modal-gameover" class="modal hidden">
-        <div class="modal-content gameover-content">
-            <h2>KONKURS!</h2>
-            <p id="gameover-reason"></p>
-            <p>Du har blitt kastet ut og må flytte hjem til mor og far.</p>
-            <button id="btn-restart" class="primary-btn">Start på nytt</button>
-        </div>
-    </div>
-
+    <div id="modal-efaktura-offer" class="modal hidden"><div class="modal-content"><h3>eFaktura?</h3><p id="offer-text"></p><div class="modal-actions"><button id="btn-accept-efaktura" class="primary-btn">Ja</button><button id="btn-decline-efaktura" class="secondary-btn">Nei</button></div></div></div>
+    <div id="modal-event" class="modal hidden"><div class="modal-content"><h3>Hendelse!</h3><p id="event-text"></p><p id="event-cost" style="font-weight:bold; margin:10px 0;"></p><p id="event-insurance" style="color:green; font-style:italic;"></p><button id="btn-close-event" class="primary-btn">OK</button></div></div>
+    <div id="modal-gameover" class="modal hidden"><div class="modal-content gameover-content"><h2>KONKURS!</h2><p id="gameover-reason"></p><button id="btn-restart" class="primary-btn">Start på nytt</button></div></div>
     <div id="toast-container"></div>
 
-    <!-- Datafiler -->
     <script src="data_jobs.js"></script>
     <script src="data_housing.js"></script>
     <script src="data_education.js"></script>
     <script src="data_items.js"></script>
     <script src="data_events.js"></script>
-    
-    <!-- Hovedscript -->
     <script src="script.js"></script>
 </body>
 </html>
-<!-- Version: #14 -->
+<!-- Version: #17 -->
