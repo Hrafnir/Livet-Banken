@@ -10,7 +10,7 @@ const DATA_HOUSING = [
         comfort: -5, // Går ut over stoltheten
         parking: true,
         reqEquity: 0,
-        img: "" // Ingen bilde foreløpig
+        img: "morogfar.png" // Ingen bilde foreløpig
     },
     {
         id: "rent_shared",
