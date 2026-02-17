@@ -1,10 +1,10 @@
-<!-- Version: #8 -->
+<!-- Version: #11 -->
 <!DOCTYPE html>
 <html lang="no">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Livet & Banken 3.0 - Livssimulator</title>
+    <title>Livet & Banken 4.0 - Boligdrømmen</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -14,13 +14,14 @@
         <!-- Hovednavigasjon -->
         <nav class="main-nav">
             <button id="nav-life" class="nav-btn active">Livet</button>
-            <button id="nav-jobs" class="nav-btn">Jobbmarked</button>
-            <button id="nav-edu" class="nav-btn">Utdanning</button>
+            <button id="nav-jobs" class="nav-btn">Jobb</button>
+            <button id="nav-housing" class="nav-btn">Bolig</button>
+            <button id="nav-edu" class="nav-btn">Studier</button>
             <button id="nav-store" class="nav-btn">Butikk</button>
-            <button id="nav-bank" class="nav-btn">Nettbanken</button>
+            <button id="nav-bank" class="nav-btn">Banken</button>
         </nav>
 
-        <!-- VISNING 1: LIVET (Oversikt & Planlegging) -->
+        <!-- VISNING 1: LIVET -->
         <section id="view-life" class="view active-view">
             <header class="life-header">
                 <div class="stat-group">
@@ -52,143 +53,102 @@
 
             <main class="life-main">
                 
-                <!-- Postkasse & Status -->
                 <div class="info-section">
+                    <div class="status-area">
+                        <h3>Min Status</h3>
+                        <p><strong>Jobb:</strong> <span id="disp-job-title">Arbeidsledig</span></p>
+                        <p><strong>Bosted:</strong> <span id="disp-home-title">Kjelleren</span></p>
+                        <ul id="skills-list" class="simple-list"></ul>
+                    </div>
                     <div class="mailbox-area">
                         <h3>📬 Postkasse <span id="mail-count" class="badge hidden">0</span></h3>
                         <div id="mailbox-list" class="mailbox-list">
                             <div class="empty-msg">Ingen post.</div>
                         </div>
                     </div>
-                    
-                    <div class="status-area">
-                        <h3>Din Status</h3>
-                        <p><strong>Jobb:</strong> <span id="disp-job-title">Arbeidsledig</span></p>
-                        <p><strong>Kompetanse:</strong></p>
-                        <ul id="skills-list" class="simple-list">
-                            <li>Ingen utdanning ennå.</li>
-                        </ul>
-                    </div>
                 </div>
 
-                <!-- Ukesplanleggeren -->
+                <!-- Planlegger -->
                 <div class="planner-section">
-                    <h3>📅 Planlegg Uken (168 timer)</h3>
-                    
+                    <h3>📅 Ukeplanlegger</h3>
                     <div class="planner-grid">
-                        <!-- Kolonne 1 -->
                         <div class="planner-col">
-                            <h4>Nødvendig</h4>
-                            <div class="planner-input">
-                                <label>Søvn (t/natt):</label>
-                                <input type="number" id="input-sleep" value="8" min="0" max="24">
-                            </div>
-                            <div class="planner-input">
-                                <label>Jobb (t/uke): <span id="job-limit-hint" class="sub-hint">Maks 0t</span></label>
-                                <input type="number" id="input-work" value="0" min="0" max="100">
-                            </div>
-                            <div class="planner-input">
-                                <label>Husarbeid (t/uke):</label>
-                                <input type="number" id="input-chores" value="5" min="0" max="50">
-                            </div>
+                            <h4>Obligatorisk</h4>
+                            <div class="planner-input"><label>Søvn (t/natt)</label><input type="number" id="input-sleep" value="8"></div>
+                            <div class="planner-input"><label>Jobb (t/uke)</label><input type="number" id="input-work" value="0"></div>
+                            <div class="planner-input"><label>Husarbeid</label><input type="number" id="input-chores" value="5"></div>
                         </div>
-
-                        <!-- Kolonne 2 -->
                         <div class="planner-col">
-                            <h4>Utvikling & Fritid</h4>
-                            <div class="planner-input">
-                                <label>Studier (t/uke):</label>
-                                <input type="number" id="input-study" value="0" min="0" max="100">
-                            </div>
-                            <div class="planner-input">
-                                <label>Trening (t/uke):</label>
-                                <input type="number" id="input-exercise" value="0" min="0" max="50">
-                            </div>
-                            <div class="planner-input">
-                                <label>Sosialt/Shopping (t/uke):</label>
-                                <input type="number" id="input-shopping" value="0" min="0" max="50">
-                            </div>
+                            <h4>Fritid</h4>
+                            <div class="planner-input"><label>Studier</label><input type="number" id="input-study" value="0"></div>
+                            <div class="planner-input"><label>Trening</label><input type="number" id="input-exercise" value="0"></div>
+                            <div class="planner-input"><label>Sosialt</label><input type="number" id="input-shopping" value="0"></div>
                         </div>
                     </div>
-
                     <div class="planner-summary">
-                        <p>Pendling: <span id="calc-commute">0</span> t | Tid igjen: <strong id="calc-free-time">0</strong> t</p>
-                        <p>Matbudsjett: 
-                            <select id="select-food-budget">
-                                <option value="low">Lavt (500kr)</option>
-                                <option value="medium" selected>Middels (1500kr)</option>
-                                <option value="high">Høyt (3500kr)</option>
-                            </select>
-                        </p>
+                        <p>Pendling: <span id="calc-commute">0</span>t | Ledig: <strong id="calc-free-time">0</strong>t</p>
+                        <p>Mat: <select id="select-food-budget">
+                            <option value="low">Lavt (500kr)</option>
+                            <option value="medium" selected>Middels (1500kr)</option>
+                            <option value="high">Høyt (3500kr)</option>
+                        </select></p>
                     </div>
-
                     <button id="btn-run-week" class="action-btn big-btn">Start Uken 🚀</button>
                 </div>
 
-                <!-- Verktøy -->
                 <div class="tools-section">
                     <button id="btn-get-bankid" class="secondary-btn">🔑 Hent BankID</button>
                     <div class="inventory">
-                        <h4>Dine Ting & Abonnementer:</h4>
-                        <ul id="inventory-list">Ingen ting.</ul>
+                        <h4>Mine Ting:</h4>
+                        <ul id="inventory-list"></ul>
                     </div>
                 </div>
-
             </main>
         </section>
 
         <!-- VISNING 2: JOBBMARKED -->
         <section id="view-jobs" class="view hidden-view">
             <h2>Jobbmarked</h2>
-            <p class="intro-text">Søk på jobber du er kvalifisert for. Husk pendlertiden!</p>
-            <div id="job-list" class="card-grid">
-                <!-- Fylles av JS fra data_jobs.js -->
+            <div id="job-list" class="card-grid"></div>
+        </section>
+
+        <!-- VISNING 3: BOLIGMARKED (NY!) -->
+        <section id="view-housing" class="view hidden-view">
+            <h2>Boligmarked</h2>
+            <p class="intro-text">Leie eller eie? Husk at eiendom er en investering, men lån koster penger.</p>
+            <div id="housing-list" class="card-grid">
+                <!-- Fylles av JS -->
             </div>
         </section>
 
-        <!-- VISNING 3: UTDANNING -->
+        <!-- VISNING 4: UTDANNING -->
         <section id="view-edu" class="view hidden-view">
-            <h2>Campus & Kurs</h2>
-            <p class="intro-text">Invester tid i kompetanse for å få bedre jobber.</p>
-            <div id="edu-list" class="card-grid">
-                <!-- Fylles av JS fra data_education.js -->
-            </div>
+            <h2>Campus</h2>
+            <div id="edu-list" class="card-grid"></div>
         </section>
 
-        <!-- VISNING 4: BUTIKK -->
+        <!-- VISNING 5: BUTIKK -->
         <section id="view-store" class="view hidden-view">
-            <h2>Butikk & Tjenester</h2>
-            <p class="intro-text">Kjøp ting som gjør livet enklere eller tryggere.</p>
-            <div id="store-list" class="card-grid">
-                <!-- Fylles av JS fra data_items.js -->
-            </div>
+            <h2>Butikk & Abonnementer</h2>
+            <div id="store-list" class="card-grid"></div>
         </section>
 
-
-        <!-- VISNING 5: NETTBANKEN -->
+        <!-- VISNING 6: NETTBANKEN -->
         <section id="view-bank" class="view hidden-view">
             
-            <!-- Bank: Logg inn -->
             <div id="bank-login-screen" class="bank-screen">
                 <div class="login-box">
                     <div class="bank-logo">NordBanken</div>
                     <h2>Logg inn</h2>
                     <form id="login-form">
-                        <div class="form-group">
-                            <label>Fødselsnummer</label>
-                            <input type="text" value="150509 12345" disabled>
-                        </div>
-                        <div class="form-group">
-                            <label>Engangskode</label>
-                            <input type="number" id="input-bankid-login" placeholder="------">
-                        </div>
+                        <div class="form-group"><label>Fødselsnummer</label><input type="text" value="150509 12345" disabled></div>
+                        <div class="form-group"><label>Engangskode</label><input type="number" id="input-bankid-login" placeholder="------"></div>
                         <button type="submit" class="bank-primary-btn">Logg inn</button>
                         <p id="login-error" class="error-msg hidden">Feil kode.</p>
                     </form>
                 </div>
             </div>
 
-            <!-- Bank: Dashboard -->
             <div id="bank-dashboard-screen" class="bank-screen hidden">
                 <header class="bank-header">
                     <div class="bank-logo-small">NordBanken</div>
@@ -198,81 +158,60 @@
                 <div class="bank-grid">
                     <!-- Kontoer -->
                     <div class="bank-panel">
-                        <h3>Oversikt</h3>
-                        <div class="account-row">
-                            <span>Brukskonto</span>
-                            <span id="bal-checking" class="amount">0.00</span>
+                        <h3>Kontoer</h3>
+                        <div class="account-row"><span>Brukskonto</span><span id="bal-checking" class="amount">0</span></div>
+                        <div class="account-row"><span>Sparekonto</span><span id="bal-savings" class="amount">0</span></div>
+                        <div class="account-row"><span>BSU</span><span id="bal-bsu" class="amount">0</span></div>
+                    </div>
+
+                    <!-- Lån (NY!) -->
+                    <div class="bank-panel">
+                        <h3>Mine Lån</h3>
+                        <div id="loan-container">
+                            <div class="empty-bills">Ingen lån.</div>
                         </div>
-                        <div class="account-row">
-                            <span>Sparekonto</span>
-                            <span id="bal-savings" class="amount">0.00</span>
-                        </div>
-                        <div class="account-row">
-                            <span>BSU</span>
-                            <span id="bal-bsu" class="amount">0.00</span>
+                        <div class="loan-summary">
+                            <small>Totalt lån: <span id="total-debt">0</span> kr</small>
                         </div>
                     </div>
 
-                    <!-- Egenoverføring -->
+                    <!-- Overføring -->
                     <div class="bank-panel">
                         <h3>Overføring</h3>
                         <div class="payment-form">
                             <div class="form-group">
-                                <label>Fra</label>
                                 <select id="trans-from">
                                     <option value="checking">Brukskonto</option>
                                     <option value="savings">Sparekonto</option>
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label>Til</label>
                                 <select id="trans-to">
                                     <option value="savings">Sparekonto</option>
                                     <option value="bsu">BSU</option>
                                     <option value="checking">Brukskonto</option>
                                 </select>
                             </div>
-                            <div class="form-group">
-                                <label>Beløp</label>
-                                <input type="number" id="trans-amount" placeholder="0">
-                            </div>
+                            <div class="form-group"><input type="number" id="trans-amount" placeholder="Beløp"></div>
                             <button id="btn-transfer" class="bank-action-btn">Overfør</button>
                         </div>
                     </div>
 
-                    <!-- Betaling (Regninger) -->
+                    <!-- Betaling -->
                     <div class="bank-panel">
-                        <h3>Betale Regning</h3>
+                        <h3>Betaling</h3>
                         <div class="payment-form">
-                            <div class="form-group">
-                                <label>Fra konto</label>
-                                <select id="pay-from">
-                                    <option value="checking">Brukskonto</option>
-                                    <option value="savings">Sparekonto</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Til kontonummer</label>
-                                <input type="text" id="pay-to-acc" placeholder="0000.00.00000">
-                            </div>
-                            <div class="form-group">
-                                <label>KID</label>
-                                <input type="text" id="pay-kid" placeholder="KID nummer">
-                            </div>
-                            <div class="form-group">
-                                <label>Beløp</label>
-                                <input type="number" id="pay-amount" placeholder="0.00">
-                            </div>
+                            <div class="form-group"><input type="text" id="pay-to-acc" placeholder="Kontonummer"></div>
+                            <div class="form-group"><input type="text" id="pay-kid" placeholder="KID"></div>
+                            <div class="form-group"><input type="number" id="pay-amount" placeholder="Beløp"></div>
                             <button id="btn-pay-manual" class="bank-action-btn">Betal</button>
                         </div>
                     </div>
 
-                    <!-- eFaktura Oversikt -->
+                    <!-- eFaktura -->
                     <div class="bank-panel full-width">
-                        <h3>eFaktura / Avtaler</h3>
-                        <div id="efaktura-list" class="efaktura-container">
-                            <div class="empty-bills">Ingen avtaler.</div>
-                        </div>
+                        <h3>eFaktura</h3>
+                        <div id="efaktura-list" class="efaktura-container"></div>
                     </div>
                 </div>
             </div>
@@ -280,89 +219,45 @@
 
     </div>
 
-    <!-- MODALER -->
-    
-    <!-- BankID Code Modal -->
+    <!-- MODALER (Samme som før, pluss Game Over tilpasset) -->
     <div id="modal-bankid" class="modal hidden">
-        <div class="modal-content">
-            <h3>Din Engangskode</h3>
-            <div id="display-bankid-code" class="code-display">------</div>
-            <button id="btn-close-bankid" class="primary-btn">Lukk</button>
-        </div>
+        <div class="modal-content"><h3>Engangskode</h3><div id="display-bankid-code" class="code-display"></div><button id="btn-close-bankid" class="primary-btn">Lukk</button></div>
     </div>
-
-    <!-- Paper Bill Modal -->
     <div id="modal-paper-bill" class="modal hidden">
         <div class="modal-content paper-bill">
-            <div class="bill-header">
-                <span id="bill-sender">Avsender</span>
-                <span class="bill-date">Forfall: Uke <span id="bill-due-week">1</span></span>
-            </div>
-            <div class="bill-body">
-                <p>Faktura for periode.</p>
-                <div class="bill-details">
-                    <div class="detail-row">
-                        <span>Beløp:</span>
-                        <strong id="bill-amount-display">0,00</strong>
-                    </div>
-                    <div class="detail-row">
-                        <span>Konto:</span>
-                        <strong id="bill-account-display" class="copyable">1234.56.78901</strong>
-                    </div>
-                    <div class="detail-row">
-                        <span>KID:</span>
-                        <strong id="bill-kid-display" class="copyable">00000</strong>
-                    </div>
-                </div>
-            </div>
-            <div class="bill-footer">
-                <button id="btn-close-bill" class="primary-btn">Lukk</button>
-            </div>
+            <div class="bill-header"><span id="bill-sender"></span><span id="bill-due-week"></span></div>
+            <div class="bill-body"><p>Faktura</p><div class="bill-details">
+                <div class="detail-row"><span>Beløp:</span><strong id="bill-amount-display"></strong></div>
+                <div class="detail-row"><span>Konto:</span><strong id="bill-account-display"></strong></div>
+                <div class="detail-row"><span>KID:</span><strong id="bill-kid-display"></strong></div>
+            </div></div>
+            <div class="bill-footer"><button id="btn-close-bill" class="primary-btn">Lukk</button></div>
         </div>
     </div>
-
-    <!-- eFaktura Offer Modal -->
     <div id="modal-efaktura-offer" class="modal hidden">
-        <div class="modal-content">
-            <h3>Opprette eFaktura?</h3>
-            <p>Vil du at regninger fra <span id="offer-recipient">Mottaker</span> skal komme rett i nettbanken?</p>
-            <div class="modal-actions">
-                <button id="btn-accept-efaktura" class="primary-btn">Ja</button>
-                <button id="btn-decline-efaktura" class="secondary-btn">Nei</button>
-            </div>
-        </div>
+        <div class="modal-content"><h3>eFaktura?</h3><p id="offer-text"></p><div class="modal-actions"><button id="btn-accept-efaktura" class="primary-btn">Ja</button><button id="btn-decline-efaktura" class="secondary-btn">Nei</button></div></div>
     </div>
-
-    <!-- Event Modal (NY!) -->
     <div id="modal-event" class="modal hidden">
-        <div class="modal-content" style="border-top: 5px solid #f39c12;">
-            <h3>Uventet Hendelse!</h3>
-            <p id="event-text">Noe skjedde...</p>
-            <p id="event-cost" style="font-weight:bold; font-size:1.2rem; margin:15px 0;">Kostnad: 0 kr</p>
-            <p id="event-insurance" style="color: green; font-style: italic;"></p>
-            <button id="btn-close-event" class="primary-btn">OK</button>
-        </div>
+        <div class="modal-content"><h3>Hendelse!</h3><p id="event-text"></p><p id="event-cost"></p><p id="event-insurance"></p><button id="btn-close-event" class="primary-btn">OK</button></div>
     </div>
-
-    <!-- Game Over Modal -->
     <div id="modal-gameover" class="modal hidden">
         <div class="modal-content gameover-content">
-            <h2>GAME OVER</h2>
-            <p id="gameover-reason">Slutt.</p>
-            <button id="btn-restart" class="primary-btn">Start på nytt</button>
+            <h2>KONKURS!</h2>
+            <p id="gameover-reason"></p>
+            <p>Du har blitt kastet ut av boligen din og må flytte hjem til mor og far i kjelleren. Gjelden din er slettet, men stoltheten er borte.</p>
+            <button id="btn-restart" class="primary-btn">Start på nytt fra kjelleren</button>
         </div>
     </div>
 
     <div id="toast-container"></div>
 
-    <!-- LAST INN DATA FØRST -->
+    <!-- Datafiler -->
     <script src="data_jobs.js"></script>
+    <script src="data_housing.js"></script>
     <script src="data_education.js"></script>
     <script src="data_items.js"></script>
     <script src="data_events.js"></script>
-    
-    <!-- HOVEDLOGIKK -->
     <script src="script.js"></script>
 </body>
 </html>
-<!-- Version: #8 -->
+<!-- Version: #11 -->
