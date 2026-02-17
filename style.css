@@ -1,4 +1,4 @@
-/* Version: #5 */
+/* Version: #6 */
 
 /* === 1. GLOBAL RESET & VARIABLES === */
 :root {
@@ -44,7 +44,7 @@ body {
 #app-container {
     width: 100%;
     max-width: 900px;
-    height: 95vh; /* Litt høyere for å romme mer info */
+    height: 95vh;
     background-color: var(--life-bg);
     border-radius: 10px;
     overflow: hidden;
@@ -204,7 +204,7 @@ body {
 }
 
 .mail-item {
-    padding: 10px;
+    padding: 12px;
     border-bottom: 1px solid #eee;
     cursor: pointer;
     display: flex;
@@ -218,11 +218,7 @@ body {
 .mail-item.unread {
     background-color: #fff9c4; /* Lys gul for ulest */
     font-weight: bold;
-}
-
-.mail-item.unread::before {
-    content: '✉️';
-    margin-right: 5px;
+    border-left: 4px solid var(--life-primary);
 }
 
 .mail-item.read {
@@ -230,23 +226,24 @@ body {
     background-color: #f9f9f9;
 }
 
-.mail-item.read::before {
-    content: '📩';
-    opacity: 0.5;
-    margin-right: 5px;
-}
-
 .badge {
     background-color: var(--life-primary);
     color: white;
     font-size: 0.8rem;
-    padding: 2px 6px;
+    padding: 2px 8px;
     border-radius: 10px;
-    vertical-align: middle;
+    margin-left: 10px;
 }
 .badge.hidden { display: none; }
 
-/* Planleggeren */
+.hint {
+    font-size: 0.85rem;
+    color: #888;
+    margin-top: 8px;
+    font-style: italic;
+}
+
+/* Planleggeren (To-kolonne) */
 .planner-section {
     background: white;
     padding: 15px;
@@ -255,13 +252,28 @@ body {
     grid-column: 1 / 2;
 }
 
+.planner-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.planner-col h4 {
+    margin-bottom: 10px;
+    color: var(--life-primary);
+    border-bottom: 2px solid #eee;
+    padding-bottom: 5px;
+    font-size: 0.95rem;
+}
+
 .planner-input {
     margin-bottom: 12px;
 }
 
 .planner-input label {
     display: block;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     font-weight: bold;
     color: #555;
     margin-bottom: 3px;
@@ -269,24 +281,26 @@ body {
 
 .planner-input input, .planner-input select {
     width: 100%;
-    padding: 8px;
+    padding: 6px;
     border: 1px solid #ccc;
     border-radius: 4px;
+    font-size: 0.9rem;
 }
 
 .sub-hint {
-    font-size: 0.75rem;
-    color: #888;
+    font-size: 0.7rem;
+    color: #999;
     display: block;
-    margin-top: 2px;
+    margin-top: 1px;
 }
 
 .planner-summary {
     background-color: #f0f9ff;
     padding: 10px;
     border-radius: 4px;
-    margin: 10px 0;
+    margin-bottom: 15px;
     font-size: 0.9rem;
+    border: 1px solid #d1e8ff;
 }
 
 /* Tools / Inventory */
@@ -305,12 +319,14 @@ body {
     list-style: none;
     padding: 0;
     margin-top: 5px;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
 }
 
 .inventory li {
-    padding: 3px 0;
+    padding: 5px 0;
     border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
 }
 
 /* Buttons */
@@ -333,14 +349,21 @@ body {
     box-shadow: none;
 }
 
+.big-btn:disabled {
+    background-color: #bdc3c7;
+    box-shadow: none;
+    cursor: not-allowed;
+}
+
 .secondary-btn {
     width: 100%;
     background-color: #95a5a6;
     color: white;
     border: none;
-    padding: 8px;
+    padding: 10px;
     border-radius: 4px;
     cursor: pointer;
+    font-weight: bold;
 }
 
 /* === 5. NETTBANKEN THEME === */
@@ -396,12 +419,16 @@ body {
     color: #666;
 }
 
-.form-group input, .form-group select {
+/* Inputs in bank (Text and Number) */
+.form-group input[type="text"], 
+.form-group input[type="number"],
+.form-group select {
     width: 100%;
     padding: 10px;
     border: 1px solid var(--bank-border);
-    border-radius: 2px; /* Skarpere kanter i banken */
+    border-radius: 2px;
     font-size: 0.95rem;
+    background-color: #fff;
 }
 
 .bank-primary-btn {
@@ -439,6 +466,7 @@ body {
     padding: 4px 10px;
     cursor: pointer;
     font-size: 0.8rem;
+    color: var(--bank-text);
 }
 
 .bank-grid {
@@ -482,6 +510,7 @@ body {
 .account-row .amount {
     font-weight: bold;
     font-family: var(--font-mono);
+    color: var(--bank-text);
 }
 
 /* Payment Form */
@@ -499,6 +528,8 @@ body {
     border-radius: 2px;
     font-weight: bold;
 }
+
+.bank-action-btn:hover { background-color: #008ecc; }
 
 /* eFaktura List */
 .efaktura-container {
@@ -590,6 +621,18 @@ body {
     padding: 0 4px;
 }
 
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.modal-actions button {
+    width: auto;
+    padding: 10px 20px;
+}
+
 /* Toast */
 #toast-container {
     position: fixed;
@@ -613,6 +656,7 @@ body {
 
 .toast.success { border-left: 4px solid var(--bank-success); }
 .toast.error { border-left: 4px solid var(--bank-error); }
+.toast.info { border-left: 4px solid var(--bank-accent); }
 
 @keyframes slideIn {
     from { transform: translateX(100%); opacity: 0; }
@@ -630,5 +674,8 @@ body {
     .planner-section, .tools-section, .mailbox-section {
         grid-column: 1 / -1;
     }
+    .planner-grid {
+        grid-template-columns: 1fr; /* Stack inputs on mobile */
+    }
 }
-/* Version: #5 */
+/* Version: #6 */
