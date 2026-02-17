@@ -32,7 +32,7 @@ const DATA_HOUSING = [
         comfort: 2,
         parking: false,
         reqEquity: 0,
-        img: ""
+        img: "img/studio.jpg"
     },
     {
         id: "rent_apartment",
