@@ -1,10 +1,10 @@
-<!-- Version: #11 -->
+<!-- Version: #14 -->
 <!DOCTYPE html>
 <html lang="no">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Livet & Banken 4.0 - Boligdrømmen</title>
+    <title>Livet & Banken 4.0</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -21,7 +21,7 @@
             <button id="nav-bank" class="nav-btn">Banken</button>
         </nav>
 
-        <!-- VISNING 1: LIVET -->
+        <!-- VISNING 1: LIVET (Oversikt) -->
         <section id="view-life" class="view active-view">
             <header class="life-header">
                 <div class="stat-group">
@@ -70,28 +70,30 @@
 
                 <!-- Planlegger -->
                 <div class="planner-section">
-                    <h3>📅 Ukeplanlegger</h3>
+                    <h3>📅 Ukeplanlegger (168t)</h3>
                     <div class="planner-grid">
                         <div class="planner-col">
                             <h4>Obligatorisk</h4>
-                            <div class="planner-input"><label>Søvn (t/natt)</label><input type="number" id="input-sleep" value="8"></div>
-                            <div class="planner-input"><label>Jobb (t/uke)</label><input type="number" id="input-work" value="0"></div>
-                            <div class="planner-input"><label>Husarbeid</label><input type="number" id="input-chores" value="5"></div>
+                            <div class="planner-input"><label>Søvn (t/natt)</label><input type="number" id="input-sleep" value="8" min="0" max="24"></div>
+                            <div class="planner-input"><label>Jobb (t/uke)</label><input type="number" id="input-work" value="0" min="0" max="100"></div>
+                            <div class="planner-input"><label>Husarbeid (t/uke)</label><input type="number" id="input-chores" value="5" min="0" max="50"></div>
                         </div>
                         <div class="planner-col">
-                            <h4>Fritid</h4>
-                            <div class="planner-input"><label>Studier</label><input type="number" id="input-study" value="0"></div>
-                            <div class="planner-input"><label>Trening</label><input type="number" id="input-exercise" value="0"></div>
-                            <div class="planner-input"><label>Sosialt</label><input type="number" id="input-shopping" value="0"></div>
+                            <h4>Fritid & Utvikling</h4>
+                            <div class="planner-input"><label>Studier (t/uke)</label><input type="number" id="input-study" value="0" min="0" max="100"></div>
+                            <div class="planner-input"><label>Trening (t/uke)</label><input type="number" id="input-exercise" value="0" min="0" max="50"></div>
+                            <div class="planner-input"><label>Sosialt (t/uke)</label><input type="number" id="input-shopping" value="0" min="0" max="50"></div>
                         </div>
                     </div>
                     <div class="planner-summary">
-                        <p>Pendling: <span id="calc-commute">0</span>t | Ledig: <strong id="calc-free-time">0</strong>t</p>
-                        <p>Mat: <select id="select-food-budget">
-                            <option value="low">Lavt (500kr)</option>
-                            <option value="medium" selected>Middels (1500kr)</option>
-                            <option value="high">Høyt (3500kr)</option>
-                        </select></p>
+                        <p>Pendling: <span id="calc-commute">0</span>t | Ledig tid: <strong id="calc-free-time">0</strong>t</p>
+                        <p>Matbudsjett: 
+                            <select id="select-food-budget">
+                                <option value="low">Lavt (500kr)</option>
+                                <option value="medium" selected>Middels (1500kr)</option>
+                                <option value="high">Høyt (3500kr)</option>
+                            </select>
+                        </p>
                     </div>
                     <button id="btn-run-week" class="action-btn big-btn">Start Uken 🚀</button>
                 </div>
@@ -100,7 +102,7 @@
                     <button id="btn-get-bankid" class="secondary-btn">🔑 Hent BankID</button>
                     <div class="inventory">
                         <h4>Mine Ting:</h4>
-                        <ul id="inventory-list"></ul>
+                        <ul id="inventory-list">Ingen ting.</ul>
                     </div>
                 </div>
             </main>
@@ -112,18 +114,16 @@
             <div id="job-list" class="card-grid"></div>
         </section>
 
-        <!-- VISNING 3: BOLIGMARKED (NY!) -->
+        <!-- VISNING 3: BOLIGMARKED -->
         <section id="view-housing" class="view hidden-view">
             <h2>Boligmarked</h2>
-            <p class="intro-text">Leie eller eie? Husk at eiendom er en investering, men lån koster penger.</p>
-            <div id="housing-list" class="card-grid">
-                <!-- Fylles av JS -->
-            </div>
+            <p class="intro-text">Leie eller eie? Husk at lån koster penger.</p>
+            <div id="housing-list" class="card-grid"></div>
         </section>
 
         <!-- VISNING 4: UTDANNING -->
         <section id="view-edu" class="view hidden-view">
-            <h2>Campus</h2>
+            <h2>Campus & Kurs</h2>
             <div id="edu-list" class="card-grid"></div>
         </section>
 
@@ -136,6 +136,7 @@
         <!-- VISNING 6: NETTBANKEN -->
         <section id="view-bank" class="view hidden-view">
             
+            <!-- Bank Login -->
             <div id="bank-login-screen" class="bank-screen">
                 <div class="login-box">
                     <div class="bank-logo">NordBanken</div>
@@ -149,6 +150,7 @@
                 </div>
             </div>
 
+            <!-- Bank Dashboard -->
             <div id="bank-dashboard-screen" class="bank-screen hidden">
                 <header class="bank-header">
                     <div class="bank-logo-small">NordBanken</div>
@@ -164,7 +166,7 @@
                         <div class="account-row"><span>BSU</span><span id="bal-bsu" class="amount">0</span></div>
                     </div>
 
-                    <!-- Lån (NY!) -->
+                    <!-- Lån -->
                     <div class="bank-panel">
                         <h3>Mine Lån</h3>
                         <div id="loan-container">
@@ -219,33 +221,37 @@
 
     </div>
 
-    <!-- MODALER (Samme som før, pluss Game Over tilpasset) -->
+    <!-- MODALER -->
     <div id="modal-bankid" class="modal hidden">
         <div class="modal-content"><h3>Engangskode</h3><div id="display-bankid-code" class="code-display"></div><button id="btn-close-bankid" class="primary-btn">Lukk</button></div>
     </div>
+    
     <div id="modal-paper-bill" class="modal hidden">
         <div class="modal-content paper-bill">
             <div class="bill-header"><span id="bill-sender"></span><span id="bill-due-week"></span></div>
             <div class="bill-body"><p>Faktura</p><div class="bill-details">
                 <div class="detail-row"><span>Beløp:</span><strong id="bill-amount-display"></strong></div>
-                <div class="detail-row"><span>Konto:</span><strong id="bill-account-display"></strong></div>
-                <div class="detail-row"><span>KID:</span><strong id="bill-kid-display"></strong></div>
+                <div class="detail-row"><span>Konto:</span><strong id="bill-account-display" class="copyable"></strong></div>
+                <div class="detail-row"><span>KID:</span><strong id="bill-kid-display" class="copyable"></strong></div>
             </div></div>
             <div class="bill-footer"><button id="btn-close-bill" class="primary-btn">Lukk</button></div>
         </div>
     </div>
+
     <div id="modal-efaktura-offer" class="modal hidden">
-        <div class="modal-content"><h3>eFaktura?</h3><p id="offer-text"></p><div class="modal-actions"><button id="btn-accept-efaktura" class="primary-btn">Ja</button><button id="btn-decline-efaktura" class="secondary-btn">Nei</button></div></div>
+        <div class="modal-content"><h3>eFaktura?</h3><p id="offer-text">Vil du opprette AvtaleGiro?</p><div class="modal-actions"><button id="btn-accept-efaktura" class="primary-btn">Ja</button><button id="btn-decline-efaktura" class="secondary-btn">Nei</button></div></div>
     </div>
+
     <div id="modal-event" class="modal hidden">
-        <div class="modal-content"><h3>Hendelse!</h3><p id="event-text"></p><p id="event-cost"></p><p id="event-insurance"></p><button id="btn-close-event" class="primary-btn">OK</button></div>
+        <div class="modal-content"><h3>Hendelse!</h3><p id="event-text"></p><p id="event-cost" style="font-weight:bold; margin:10px 0;"></p><p id="event-insurance" style="color:green; font-style:italic;"></p><button id="btn-close-event" class="primary-btn">OK</button></div>
     </div>
+
     <div id="modal-gameover" class="modal hidden">
         <div class="modal-content gameover-content">
             <h2>KONKURS!</h2>
             <p id="gameover-reason"></p>
-            <p>Du har blitt kastet ut av boligen din og må flytte hjem til mor og far i kjelleren. Gjelden din er slettet, men stoltheten er borte.</p>
-            <button id="btn-restart" class="primary-btn">Start på nytt fra kjelleren</button>
+            <p>Du har blitt kastet ut og må flytte hjem til mor og far.</p>
+            <button id="btn-restart" class="primary-btn">Start på nytt</button>
         </div>
     </div>
 
@@ -257,7 +263,9 @@
     <script src="data_education.js"></script>
     <script src="data_items.js"></script>
     <script src="data_events.js"></script>
+    
+    <!-- Hovedscript -->
     <script src="script.js"></script>
 </body>
 </html>
-<!-- Version: #11 -->
+<!-- Version: #14 -->
