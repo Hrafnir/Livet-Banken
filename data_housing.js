@@ -43,7 +43,7 @@ const DATA_HOUSING = [
         comfort: 5,
         parking: true,
         reqEquity: 0,
-        img: ""
+        img: "img/2roms.jpg"
     },
 
     // --- TIL SALGS ---
