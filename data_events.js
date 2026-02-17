@@ -1,4 +1,4 @@
-/* Version: #1 - data_events.js */
+/* Version: #2 - data_events.js */
 const DATA_EVENTS = [
     {
         id: "event_dentist",
@@ -16,31 +16,34 @@ const DATA_EVENTS = [
     },
     {
         id: "event_speeding",
-        text: "Du ble tatt i fartskontroll på vei til jobb.",
+        text: "Du ble tatt i fartskontroll.",
         cost: 3500,
-        type: "none", // Ingen forsikring dekker bøter
-        happinessImpact: -5
+        type: "none",
+        happinessImpact: -5,
+        reqItem: "item_car" // Krever at man eier bil
+    },
+    {
+        id: "event_ticket",
+        text: "Du snek på bussen og ble tatt i kontroll.",
+        cost: 1100,
+        type: "none",
+        happinessImpact: -5,
+        // Skjer kun hvis man IKKE har bil (da tar man buss)
+        reqItem: "!item_car" 
     },
     {
         id: "event_lotto",
         text: "Gratulerer! Du vant en liten premie i Lotto.",
-        cost: -500, // Negativ kostnad = inntekt
+        cost: -500,
         type: "positive",
         happinessImpact: 10
-    },
-    {
-        id: "event_gift",
-        text: "Bestemor sendte deg penger til bursdagen.",
-        cost: -1000,
-        type: "positive",
-        happinessImpact: 15
     },
     {
         id: "event_mobile_break",
         text: "Du mistet mobilen i bakken. Skjermen knuste.",
         cost: 2500,
-        type: "innbo", // Noen innboforsikringer dekker dette
+        type: "innbo",
         happinessImpact: -15
     }
 ];
-/* Version: #1 */
+/* Version: #2 */
