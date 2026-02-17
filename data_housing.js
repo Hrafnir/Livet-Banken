@@ -21,7 +21,7 @@ const DATA_HOUSING = [
         comfort: -2, // Bråkete
         parking: false,
         reqEquity: 0,
-        img: ""
+        img: "img/kollektiv.jpg"
     },
     {
         id: "rent_studio",
