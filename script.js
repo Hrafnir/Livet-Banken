@@ -879,4 +879,105 @@ window.cancelItem = function(id) {
 window.payEfaktura = function(id) {
     const bill = gameState.bills.find(b => b.id === id);
     if(gameState.balance >= bill.amount) {
-        gameState.balance -= bill.amou
+        gameState.balance -= bill.amount;
+        bill.isPaid = true;
+        showToast("Betalt", "success");
+        updateUI();
+    } else showToast("Mangler dekning", "error");
+};
+
+window.openBillModal = function(bill) {
+    document.getElementById('bill-sender').textContent = bill.recipient;
+    document.getElementById('bill-amount-display').textContent = bill.amount.toFixed(2);
+    document.getElementById('bill-account-display').textContent = bill.account;
+    document.getElementById('bill-kid-display').textContent = bill.kid;
+    document.getElementById('modal-paper-bill').classList.remove('hidden');
+};
+
+window.switchView = function(key) {
+    const views = {
+        life: document.getElementById('view-life'),
+        jobs: document.getElementById('view-jobs'),
+        housing: document.getElementById('view-housing'),
+        edu: document.getElementById('view-edu'),
+        store: document.getElementById('view-store'),
+        bank: document.getElementById('view-bank')
+    };
+    const navBtns = {
+        life: document.getElementById('nav-life'),
+        jobs: document.getElementById('nav-jobs'),
+        housing: document.getElementById('nav-housing'),
+        edu: document.getElementById('nav-edu'),
+        store: document.getElementById('nav-store'),
+        bank: document.getElementById('nav-bank')
+    };
+
+    Object.values(views).forEach(el => { el.classList.remove('active-view'); el.classList.add('hidden-view'); el.style.display = 'none'; });
+    Object.values(navBtns).forEach(el => el.classList.remove('active'));
+    
+    views[key].classList.add('active-view');
+    views[key].classList.remove('hidden-view');
+    views[key].style.display = 'flex';
+    navBtns[key].classList.add('active');
+};
+
+// === HJELPEFUNKSJONER ===
+function generateBankID() {
+    gameState.currentBankID = Math.floor(100000 + Math.random() * 900000);
+    document.getElementById('display-bankid-code').textContent = gameState.currentBankID;
+    document.getElementById('modal-bankid').classList.remove('hidden');
+}
+
+function hasItem(id) { return gameState.inventory.includes(id); }
+function getSkillLevel(cat) { return Math.floor((gameState.skills[cat] || 0) / CONFIG.XP_PER_LEVEL); }
+function formatMoney(amount) { return Math.floor(amount).toLocaleString('no-NO') + " kr"; }
+function clamp(val, min, max) { return Math.min(Math.max(val, min), max); }
+
+function showToast(msg, type="info") {
+    const t = document.createElement('div'); t.className = `toast ${type}`; t.textContent = msg;
+    document.getElementById('toast-container').appendChild(t);
+    setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 500); }, 3000);
+}
+
+function checkGameOver() {
+    if (gameState.balance < -20000) triggerBankruptcy();
+    if (gameState.health <= 0) showGameOver("Helsekollaps!");
+    if (gameState.happiness <= 0) showGameOver("Depresjon.");
+}
+
+function triggerBankruptcy() {
+    gameState.housingId = "rent_basement";
+    gameState.loans = [];
+    gameState.inventory = [];
+    gameState.balance = 2000; 
+    gameState.savings = 0; gameState.bsu = 0;
+    gameState.happiness = 10;
+    document.getElementById('gameover-reason').textContent = "Personlig Konkurs";
+    document.getElementById('modal-gameover').classList.remove('hidden');
+    
+    const btn = document.getElementById('btn-restart');
+    btn.textContent = "Flytt hjem";
+    btn.onclick = () => {
+        document.getElementById('modal-gameover').classList.add('hidden');
+        updateUI(); renderHousing();
+        btn.onclick = resetGame;
+        btn.textContent = "Start på nytt";
+    };
+}
+
+function showGameOver(reason) {
+    document.getElementById('gameover-reason').textContent = reason;
+    document.getElementById('modal-gameover').classList.remove('hidden');
+}
+
+function saveGame() { localStorage.setItem('livetBankenV21', JSON.stringify(gameState)); }
+function loadGame() {
+    const data = localStorage.getItem('livetBankenV21');
+    if (data) gameState = { ...gameState, ...JSON.parse(data) };
+}
+function resetGame() { localStorage.removeItem('livetBankenV21'); location.reload(); }
+
+// Start spillet
+init();
+
+/* Version: #21 */
