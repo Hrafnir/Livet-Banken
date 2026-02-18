@@ -1,10 +1,11 @@
-<!-- Version: #17 -->
+
+<!-- Version: #18 -->
 <!DOCTYPE html>
 <html lang="no">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Livet & Banken 4.1</title>
+    <title>Livet & Banken 4.2</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -116,19 +117,19 @@
             </main>
         </section>
 
-        <!-- ANDRE VISNINGER (Uendret struktur, men inkludert for komplett fil) -->
+        <!-- VISNINGER -->
         <section id="view-jobs" class="view hidden-view"><h2>Jobbmarked</h2><div id="job-list" class="card-grid"></div></section>
         <section id="view-housing" class="view hidden-view"><h2>Boligmarked</h2><p class="intro-text">Husk: Ny bolig = Nytt kontonummer for leie!</p><div id="housing-list" class="card-grid"></div></section>
         <section id="view-edu" class="view hidden-view"><h2>Campus & Kurs</h2><div id="edu-list" class="card-grid"></div></section>
         <section id="view-store" class="view hidden-view"><h2>Butikk & Abonnementer</h2><div id="store-list" class="card-grid"></div></section>
 
-        <!-- VISNING 6: NETTBANKEN -->
+        <!-- NETTBANKEN -->
         <section id="view-bank" class="view hidden-view">
             <div id="bank-login-screen" class="bank-screen">
                 <div class="login-box">
                     <div class="bank-logo">NordBanken</div>
                     <h2>Logg inn</h2>
-                    <p style="font-size:0.8rem; color:#666; margin-bottom:10px;">(Du må logge inn på nytt hver uke av sikkerhetshensyn)</p>
+                    <p style="font-size:0.8rem; color:#666; margin-bottom:10px;">(Sikkerhetskrav: Ny innlogging hver uke)</p>
                     <form id="login-form">
                         <div class="form-group"><label>Fødselsnummer</label><input type="text" value="150509 12345" disabled></div>
                         <div class="form-group"><label>Engangskode</label><input type="number" id="input-bankid-login" placeholder="------"></div>
@@ -198,12 +199,17 @@
     <div id="modal-gameover" class="modal hidden"><div class="modal-content gameover-content"><h2>KONKURS!</h2><p id="gameover-reason"></p><button id="btn-restart" class="primary-btn">Start på nytt</button></div></div>
     <div id="toast-container"></div>
 
+    <!-- DATA -->
     <script src="data_jobs.js"></script>
     <script src="data_housing.js"></script>
     <script src="data_education.js"></script>
     <script src="data_items.js"></script>
     <script src="data_events.js"></script>
-    <script src="script.js"></script>
+    
+    <!-- LOGIKK (SPLITTET) -->
+    <script src="script_core.js"></script>
+    <script src="script_life.js"></script>
+    <script src="script_bank.js"></script>
 </body>
 </html>
-<!-- Version: #17 -->
+<!-- Version: #18 -->
